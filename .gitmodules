@@ -1,0 +1,3 @@
+[submodule "flare_emu"]
+	path = flare_emu
+	url = https://ghe.eng.fireeye.com/james-bennett/flare_emu.git

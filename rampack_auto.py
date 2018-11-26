@@ -9,7 +9,7 @@ import idaapi
 import capstone
 import unicorn
 
-import flare_emu
+from flare_emu import flare_emu
 
 
 class RamPack():
@@ -476,7 +476,23 @@ class StDataMgr(RamPack):
             user_storage = fe.getUserStorage()
             self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
 
-        self.fe.iterate(endAddr, self.tHook, preEmuCallback=pHook, emuHook=self.eHookDbg)
+        def fn_path(origin, destination, fpath=[]):
+            for x in XrefsTo(destination):
+                x_fn = get_func_attr(x.frm, FUNCATTR_START)
+                if x_fn == origin:
+                    fpath.append(x_fn)
+                    return fpath
+            
+            for x in XrefsTo(destination):
+                x_fn = get_func_attr(x.frm, FUNCATTR_START)
+                fpath.append(x_fn)
+                return check_xrefs(origin, x_fn, fpath)
+
+        for fn in fn_path(startAddr, endAddr):
+            (startAddr, endAddr) = self.locate_call_in_fn("?StReleaseRegion", "?SmStReleaseVirtualRegion")
+
+
+        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, emuHook=self.eHookDbg)
         reg_esp = self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
         pat_shl4 = self.fe.getEmuBytes(reg_esp, 0x4)
         return pat, pat_shl4
