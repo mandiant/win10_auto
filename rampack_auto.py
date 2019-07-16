@@ -114,6 +114,7 @@ class Magic(RamPack):
         for va, name in idautils.Names():
             if "?SmGlobals" in name:
                 return va - idaapi.get_imagebase()
+        return None
 
     # Requirements: PDB & IDA
     def mmpagefilearray_ida(self):
@@ -517,5 +518,13 @@ class DumpConfig():
     def __init__(self):
         return
 
+def main():
+    mgc = Magic()
+    smglobals = mgc.smglobals_ida()
+    pagefilearray = mgc.mmpagefilearray_ida()
+    logging.info("nt!SmGlobals: {0:x}".format(smglobals))
+    logging.info("nt!MmPagingFile: {0:x}".format(pagefilearray))
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    main()
