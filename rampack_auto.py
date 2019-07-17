@@ -11,9 +11,6 @@ import unicorn
 
 from flare_emu import flare_emu
 
-
-fe_userdata = None
-
 class RamPack():
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("RamPack") # TODO overwritten by child logs
@@ -62,13 +59,15 @@ class RamPack():
     @staticmethod
     def patgen(buf_len):
         pat = ""
+        symbols = "`~!@#$%^&*()-=_+[]\{}|;':,./<>?"
         for u in string.ascii_uppercase:
             for l in string.ascii_lowercase:
                 for i in string.digits:
-                    pat += "".join([u,l,i])
-                    buf_len -= 3
-                    if buf_len < 0:
-                        return pat
+                    for s in symbols:
+                        pat += "".join([u,l,i,s])
+                        buf_len -= 3
+                        if buf_len < 0:
+                            return pat
 
 
     def eHookDbg(self, uc, address, size, user_data):
@@ -91,10 +90,11 @@ class RamPack():
 
         ctx = uc.context_save()
         for insn in user_data['cs'].disasm(idc.GetManyBytes(address, idc.ItemSize(address)), address):
-            user_data['trace'].append({'cs_insn':insn, 'uc_ctx':ctx})
+            mem_regions = [reg_start for (reg_start, reg_end, reg_perms) in uc.mem_regions()]
+            user_data['trace'].append({'cs_insn':insn, 'uc_ctx':ctx, 'mem_regions':tuple(mem_regions)})
 
-        self.fe_userdata = user_data
-
+        # self.fe_userdata['trace'] = copy.deepcopy(user_data['trace']) IDA falls over
+        self.fe_userdata = user_data # TODO - Objects in dictionary may not be accurate due to linking
         return
 
     def tHook(self, fe, address, argv, userData):
@@ -156,10 +156,8 @@ class SmkmStoreMgr(RamPack):
         return
 
     def _dump(self):
-        smkm = self.smkm_ida()
-        btree_global = self.key_to_storetree()
-        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(smkm))
-        self.logger.info("SMKM_STORE_MGR.BTreeGlobalStore: 0x{0:x}".format(btree_global))
+        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(self.smkm_ida()))
+        self.logger.info("SMKM_STORE_MGR.BTreeGlobalStore: 0x{0:x}".format(self.key_to_storetree()))
 
     def smkm_ida(self):
         return 0    # constant across win10
@@ -175,7 +173,7 @@ class SmkmStoreMgr(RamPack):
         return self.fe.getRegVal('ecx') - addr_smkmstoremgr
 
     def key_to_storetree(self):
-        (startAddr, endAddr) = self.locate_call_in_fn("SmFeCheckPresent", "BTreeSearchKey")
+        (startAddr, endAddr) = self.locate_call_in_fn("?SmFeCheckPresent", "?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY")
 
         # @start ecx is SmkmStoreMgr and instantiated to 0.
         # @end ecx is the pushlock argument, diff to get struct offset 
@@ -395,6 +393,7 @@ class SmkmStore(RamPack):
         mu = self.fe.emulateRange(fn_addr, registers=regState, instructionHook=self.eHookTrace)
 
         # isolates the call block I'm interested in
+        print "\n\n"
         t_filtered = []
         for t in self.fe_userdata['trace']:
             t_filtered.append(t)
@@ -403,9 +402,14 @@ class SmkmStore(RamPack):
                 self.logger.debug("jump class @ {}".format(hex(endAddr)))
                 break
 
-        mu.context_restore(t_filtered[-1]['uc_ctx'])
-        reg_esi = mu.reg_read(unicorn.x86_const.UC_X86_REG_ESI)
-        return pat.find(struct.pack("<I", reg_esi))
+        # Check for dereferenced memory that was created by FLARE_EMU
+        mem_diff = set(t_filtered[-1]['mem_regions']).difference(set(t_filtered[0]['mem_regions']))
+        if len(mem_diff) != 1:
+            self.logger.error("Multiple mem regions allocated...")
+        mem_allocated = mem_diff.pop()
+        print mem_allocated
+        # Sketchy territory. Unicorn mem addresses end w/ 000, invalidating first two bytes of the search pattern...
+        return pat.find(struct.pack("<I",mem_allocated)[-3:]) 
 
     def sm_virtual_region(self):
         (fn_addr, fn_name) = self.find_ida_name("SmStCheckLockInProgressRegionComplete")
@@ -508,45 +512,71 @@ class StDataMgr(RamPack):
         reg_ecx = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
         return pat.find(struct.pack("<I", reg_ecx))
 
+    """
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+47   024 mov     eax, [ebx+ST_DATA_MGR.dwRegionMask]
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+4D   024 lea     edx, [ebx+20Ch]
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+53   024 push    ecx
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+54   028 inc     eax
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+55   028 push    eax
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+56   02C push    ecx
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+57   030 push    edi
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+58   034 mov     ecx, ebx
+    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+5A   034 call    ?StDmRegionEvict@?$ST_STORE@USM_TRAITS@@@@SGJPAU_ST_DATA_MGR@1@PAU_STDM_SEARCH_RESULTS@1@KKKK@Z ; ST_STORE<SM_TRAITS>::StDmRegionEvict(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ST_STORE<SM_TRAITS>::_STDM_SEARCH_RESULTS *,ulong,ulong,ulong,ulong)
+    """
     def region_size_mask(self):
-        (startAddr, fn_name) = self.find_ida_name("?StDmpSinglePageRetrieve")
-        (endAddr, fn_name) = self.find_ida_name("?SmStMapVirtualRegion")
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
             userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
-
-        def fn_path(origin, destination, fpath=[]):
-            for x in idautils.XrefsTo(destination):
-                x_fn = idc.get_func_attr(x.frm, idc.FUNCATTR_START)
-                if x_fn == origin:
-                    fpath.append(x_fn)
-                    return fpath
-            
-            # for x in idautils.XrefsTo(destination):
-            #     x_fn = idc.get_func_attr(x.frm, idc.FUNCATTR_START)
-            #     fpath.append(x_fn)
-            #     return check_xrefs(origin, x_fn, fpath)
-
-        for fn in fn_path(startAddr, endAddr):
-            (startAddr, endAddr) = self.locate_call_in_fn("?StReleaseRegion", "?SmStReleaseVirtualRegion")
+        
+        (startAddr, endAddr) = self.locate_call_in_fn("?StDmRegionRemove", "?StDmRegionEvict")
 
 
-        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=self.eHookDbg)
+        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
         reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
-        pat_shl4 = self.fe.getEmuBytes(reg_esp, 0x4)
-        return pat, pat_shl4
+        stack_bytes = self.fe.getEmuBytes(reg_esp, 0xC)
+        third_arg = stack_bytes[0x8:]
+        return pat.find(struct.pack("<I", struct.unpack("<I", third_arg)[0] - 1))
 
     def region_lsb(self):
-        return 0
+        pat = self.patgen(8192)
+        lp_stdatamgr = self.fe.loadBytes(pat)
+        region_lsb_pattern = {'pattern':0}
+
+        def pHook(self, userData, funcStart):
+            self.logger.debug("pre emulation hook loading ECX")
+            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+
+        # Using an instruction hook because data in offset is difficult to track beyond arithmetic ops like shr
+        def iHook(uc, address, size, user_data):
+            dis = idc.GetDisasm(address)
+            if "shr" in dis:
+                # This is the "equivalent" of using nonlocal in py3
+                region_lsb_pattern['pattern'] += user_data['EmuHelper'].uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+
+        (startAddr, endAddr) = self.locate_call_in_fn("?StDeviceWorkItemCleanup", "?StRegionReadDereference")
+        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=iHook)
+        return pat.find(struct.pack("<I", region_lsb_pattern["pattern"]))
 
     def data_offset_in_compressed_buf(self):
-        return
+        return 0
 
     def compression_format_and_engine(self):
-        return 0
+        pat = self.patgen(8192)
+        lp_stdatamgr = self.fe.loadBytes(pat)
+        region_lsb_pattern = {'pattern':0}
+
+        def pHook(self, userData, funcStart):
+            self.logger.debug("pre emulation hook loading ECX")
+            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+
+        (startAddr, endAddr) = self.locate_call_in_fn("?StDmSinglePageCopy", "_RtlDecompressBufferEx")
+        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
+        reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
+        stack_bytes = self.fe.getEmuBytes(reg_esp, 0x2) # Using 0x2 because this is a WORD field
+        return pat.find(stack_bytes)
 
     def smcr_integrity(self):
         return
@@ -564,9 +594,9 @@ def main():
     # SmkmStoreMgr()._dump()
     # Smkm()._dump()
     # SmkmStoreMetadata()._dump()
-    # SmkmStore()._dump()
+    SmkmStore()._dump()
     # StStore()._dump()
-    StDataMgr()._dump()
+    # StDataMgr()._dump()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
