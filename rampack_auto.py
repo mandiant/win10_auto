@@ -171,7 +171,7 @@ class SmkmStoreMgr(RamPack):
         # @end ecx is the pushlock argument, diff to get struct offset 
         addr_smkmstoremgr = 0x1000
         regState = {'ecx':addr_smkmstoremgr}
-        self.fe.emulateRange(startAddr, registerState=regState, endAddr=endAddr)
+        self.fe.emulateRange(startAddr, registers=regState, endAddr=endAddr)
         return self.fe.getRegVal('ecx') - addr_smkmstoremgr
 
     def key_to_storetree(self):
@@ -181,7 +181,7 @@ class SmkmStoreMgr(RamPack):
         # @end ecx is the pushlock argument, diff to get struct offset 
         addr_smkmstoremgr = 0x1000
         regState = {'ecx':addr_smkmstoremgr}
-        self.fe.emulateRange(startAddr, registerState=regState, endAddr=endAddr)
+        self.fe.emulateRange(startAddr, registers=regState, endAddr=endAddr)
         return self.fe.getRegVal('ecx') - addr_smkmstoremgr
 
 
@@ -203,7 +203,7 @@ class Smkm(RamPack):
         lp_addr_smkmstoremgr = self.fe.loadBytes(struct.pack("<I", addr_smkmstoremgr))
         num_store = 0x0
         regState = {'ecx':lp_addr_smkmstoremgr, 'edx':num_store}
-        self.fe.emulateRange(fn_addr, registerState=regState)
+        self.fe.emulateRange(fn_addr, registers=regState)
         return self.fe.getRegVal('ecx') - addr_smkmstoremgr
 
 
@@ -227,7 +227,7 @@ class SmkmStoreMetadata(RamPack):
         # EDX can be checked at the end for the #-of-stores mask
         num_store = 0xFF
         regState = {'ecx':lp_addr_smkmstoremgr, 'edx':num_store}
-        self.fe.emulateRange(fn_addr, registerState=regState)
+        self.fe.emulateRange(fn_addr, registers=regState)
         return self.fe.getRegVal('edx') + 1
 
     def maxstore(self):
@@ -239,7 +239,7 @@ class SmkmStoreMetadata(RamPack):
         # EDX can be checked at the end for the #-of-stores mask
         num_store = 0x1
         regState = {'ecx':lp_addr_smkmstoremgr, 'edx':num_store}
-        self.fe.emulateRange(fn_addr, registerState=regState)
+        self.fe.emulateRange(fn_addr, registers=regState)
         return self.fe.getRegVal('eax') + 1
 
     def smkm_store(self):
@@ -279,7 +279,7 @@ class SmkmStoreMetadata(RamPack):
                 user_storage['g_deref_monitor_active'] = True
             return
 
-        self.fe.iterate([endAddr], self.tHook, callHook=cHook, emuHook=eHook)
+        self.fe.iterate([endAddr], self.tHook, callHook=cHook, instructionHook=eHook)
         user_storage = self.fe.getUserStorage()
         return user_storage['result']
 
@@ -345,7 +345,7 @@ class SmkmStore(RamPack):
             return t.operands[1].value.mem.disp
 
         (startAddr, endAddr) = self.locate_call_in_fn("?SmPageRead", "SmIoCtxQueueWork")
-        self.fe.iterate([endAddr], self.tHook, emuHook=self.eHookTrace)
+        self.fe.iterate([endAddr], self.tHook, instructionHook=self.eHookTrace)
         offset = stacktrack(self.fe.getUserStorage()['trace'], 0, reverse=True)
 
         return offset
@@ -353,7 +353,7 @@ class SmkmStore(RamPack):
     def bitfield(self):
         # searches for bMappingFlags and dword aligns to get bVal
         (startAddr, endAddr) = self.locate_call_in_fn("SmStStart", "SmKmStoreHelperInitialize")
-        self.fe.iterate([endAddr], self.tHook, emuHook=self.eHookTrace)
+        self.fe.iterate([endAddr], self.tHook, instructionHook=self.eHookTrace)
         for t in self.fe.getUserStorage()['trace'][::-1]:
             t = t['cs_insn']
             if t.mnemonic == "test":
@@ -369,7 +369,7 @@ class SmkmStore(RamPack):
     def leaf_page_id(self):
         (startAddr, endAddr) = self.locate_call_in_fn("SmStAcquireStoreLockExclusive", "ExAcquirePushLockExclusiveEx")
         #start emulation at exacquirepushlock
-        self.fe.emulateRange(endAddr, emuHook=self.eHookTrace)
+        self.fe.emulateRange(endAddr, instructionHook=self.eHookTrace)
         for t in self.fe.getUserStorage()['trace']:
             if t['cs_insn'].mnemonic == "inc":
                 offset = t['cs_insn'].operands[0].value.mem.disp
@@ -380,7 +380,7 @@ class SmkmStore(RamPack):
         pat = self.patgen(8192)
         lp_smkmstore = self.fe.loadBytes(pat)
         regState = {'ecx':lp_smkmstore}
-        self.fe.emulateRange(startAddr, registerState=regState, endAddr=endAddr)
+        self.fe.emulateRange(startAddr, registers=regState, endAddr=endAddr)
         
         # This works because zero'd mem leads to a failure, which calls SmAcquireReleaseCharges
         # SmAcquireReleaseCharges appears to use the max_region_ref_count as its first arg
@@ -392,7 +392,7 @@ class SmkmStore(RamPack):
         pat = self.patgen(8192)
         lp_smkmstore = self.fe.loadBytes(pat)
         regState = {'ecx':lp_smkmstore}
-        self.fe.emulateRange(fn_addr, registerState=regState, emuHook=self.eHookTrace)
+        mu = self.fe.emulateRange(fn_addr, registers=regState, instructionHook=self.eHookTrace)
 
         # isolates the call block I'm interested in
         t_filtered = []
@@ -403,8 +403,8 @@ class SmkmStore(RamPack):
                 self.logger.debug("jump class @ {}".format(hex(endAddr)))
                 break
 
-        self.fe.mu.context_restore(t_filtered[-1]['uc_ctx'])
-        reg_esi = self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ESI)
+        mu.context_restore(t_filtered[-1]['uc_ctx'])
+        reg_esi = mu.reg_read(unicorn.x86_const.UC_X86_REG_ESI)
         return pat.find(struct.pack("<I", reg_esi))
 
     def sm_virtual_region(self):
@@ -414,7 +414,7 @@ class SmkmStore(RamPack):
         def cHook(uc, address, size, user_data):
             uc.reg_write(unicorn.x86_const.UC_X86_REG_EAX, 0xC0000120)
 
-        self.fe.emulateRange(fn_addr, registerState=regState, callHook=cHook)
+        self.fe.emulateRange(fn_addr, registers=regState, callHook=cHook)
         smkmstore_bytes = self.fe.getEmuBytes(lp_smkmstore, 0x1000*2)
         return smkmstore_bytes.find("\x00"*4)
         
@@ -423,18 +423,18 @@ class SmkmStore(RamPack):
         pat = self.patgen(8192)
         lp_smkmstore = self.fe.loadBytes(pat)
 
-        def pHook(self, mu, userData, funcStart):
+        def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_smkmstore)
+            userData["EmuHelper"].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_smkmstore)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_ecx = self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        reg_ecx = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
         return pat.find(struct.pack("<I", reg_ecx))
 
     def lock(self):
         (startAddr, endAddr) = self.locate_call_in_fn("SmStAcquireStoreLockExclusive", "ExAcquirePushLockExclusiveEx")
         self.fe.iterate([endAddr], self.tHook)
-        return self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        return self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
 
 
 class StStore(RamPack):
@@ -454,7 +454,7 @@ class StStore(RamPack):
     def st_data_mgr(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StStart", "StDmStart")
         self.fe.iterate([endAddr], self.tHook)
-        return self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_EDX)
+        return self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_EDX)
 
 
 class StDataMgr(RamPack):
@@ -483,11 +483,11 @@ class StDataMgr(RamPack):
     def chunk_metadata(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmpSinglePageAdd", "SmHpChunkAlloc")
         self.fe.iterate([endAddr], self.tHook)
-        return self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        return self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
 
     def store_flags(self):
         (fn_addr, fn_name) = self.find_ida_name("?StDmIsCurrentRegion")
-        self.fe.emulateRange(fn_addr, emuHook=self.eHookTrace)
+        self.fe.emulateRange(fn_addr, instructionHook=self.eHookTrace)
         for t in self.fe.getUserStorage()['trace']:
             t = t['cs_insn']
             if t.mnemonic == "cmp":
@@ -500,13 +500,12 @@ class StDataMgr(RamPack):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
 
-        def pHook(self, mu, userData, funcStart):
+        def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            fe = userData['EmuHelper']
-            self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_ecx = self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        reg_ecx = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
         return pat.find(struct.pack("<I", reg_ecx))
 
     def region_size_mask(self):
@@ -515,10 +514,9 @@ class StDataMgr(RamPack):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
 
-        def pHook(self, mu, userData, funcStart):
+        def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            fe = userData['EmuHelper']
-            self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
 
         def fn_path(origin, destination, fpath=[]):
             for x in idautils.XrefsTo(destination):
@@ -527,17 +525,17 @@ class StDataMgr(RamPack):
                     fpath.append(x_fn)
                     return fpath
             
-            for x in idautils.XrefsTo(destination):
-                x_fn = idc.get_func_attr(x.frm, idc.FUNCATTR_START)
-                fpath.append(x_fn)
-                return check_xrefs(origin, x_fn, fpath)
+            # for x in idautils.XrefsTo(destination):
+            #     x_fn = idc.get_func_attr(x.frm, idc.FUNCATTR_START)
+            #     fpath.append(x_fn)
+            #     return check_xrefs(origin, x_fn, fpath)
 
         for fn in fn_path(startAddr, endAddr):
             (startAddr, endAddr) = self.locate_call_in_fn("?StReleaseRegion", "?SmStReleaseVirtualRegion")
 
 
-        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, emuHook=self.eHookDbg)
-        reg_esp = self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
+        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=self.eHookDbg)
+        reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
         pat_shl4 = self.fe.getEmuBytes(reg_esp, 0x4)
         return pat, pat_shl4
 
@@ -562,12 +560,12 @@ class DumpConfig():
         return
 
 def main():
-    Magic()._dump()
-    SmkmStoreMgr()._dump()
-    Smkm()._dump()
-    SmkmStoreMetadata()._dump()
-    SmkmStore()._dump()
-    StStore()._dump()
+    # Magic()._dump()
+    # SmkmStoreMgr()._dump()
+    # Smkm()._dump()
+    # SmkmStoreMetadata()._dump()
+    # SmkmStore()._dump()
+    # StStore()._dump()
     StDataMgr()._dump()
 
 if __name__ == "__main__":
