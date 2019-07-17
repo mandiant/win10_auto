@@ -12,16 +12,19 @@ import unicorn
 from flare_emu import flare_emu
 
 
+fe_userdata = None
+
 class RamPack():
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("RamPack") # TODO overwritten by child logs
+        self.logger.setLevel(loglevel)
         return
 
     def find_ida_name(self, fn_name):
-        self.logger.info("searching for {0}...".format(fn_name))
+        self.logger.debug("searching for {0}...".format(fn_name))
         for name_addr in idautils.Names():
             if fn_name in name_addr[1]:
-                self.logger.info("found {0} @ {1}".format(name_addr[1], hex(name_addr[0])))
+                self.logger.debug("found {0} @ {1}".format(name_addr[1], hex(name_addr[0])))
                 return name_addr
         self.logger.error("{0} NOT FOUND".format(fn_name))
         return None
@@ -31,8 +34,8 @@ class RamPack():
         cs.detail = True
         return cs
 
-    def get_flare_emu(self):
-        fe = flare_emu.EmuHelper()
+    def get_flare_emu(self, loglevel=logging.INFO):
+        fe = flare_emu.EmuHelper(loglevel=loglevel)
         return fe
 
     def iter_fn(self, addr):
@@ -51,7 +54,7 @@ class RamPack():
                     call_offset = insn.operands[0].imm
                     if call_offset == addr_end:
                         endAddr = insn.address
-                        self.logger.info("located {0} in {1} @ {2}".format(name_end, name_start, hex(endAddr)))
+                        self.logger.debug("located {0} in {1} @ {2}".format(name_end, name_start, hex(endAddr)))
                         return (addr_start, endAddr)
         self.logger.error("Failed to locate {0}".format(name_end))
         return (None, None)
@@ -68,35 +71,33 @@ class RamPack():
                         return pat
 
 
-    @staticmethod
-    def eHookDbg(uc, address, size, user_data):
+    def eHookDbg(self, uc, address, size, user_data):
         fe = user_data['EmuHelper']
         dis = idc.GetDisasm(address)
         fe.logger.info("\n".join([dis, fe.getEmuState()]))
         return
 
-    @staticmethod
-    def eHookDerefMonitor(uc, address, size, user_data):
+    def eHookDerefMonitor(self, uc, address, size, user_data):
         # possible TODO
         return
 
-    @staticmethod
-    def eHookTrace(uc, address, size, user_data):
-        user_storage = user_data['EmuHelper'].getUserStorage()
-        if not user_storage.has_key('cs'):
-            user_storage['cs'] = RamPack().get_cs()
+
+    def eHookTrace(self, uc, address, size, user_data):
+        if not user_data.has_key('cs'):
+            user_data['cs'] = RamPack().get_cs()
             RamPack().logger.debug("created cs instance")
-        if not user_storage.has_key('trace'):
-            user_storage['trace'] = []
+        if not user_data.has_key('trace'):
+            user_data['trace'] = []
 
         ctx = uc.context_save()
-        for insn in user_storage['cs'].disasm(idc.GetManyBytes(address, idc.ItemSize(address)), address):
-            user_storage['trace'].append({'cs_insn':insn, 'uc_ctx':ctx})
+        for insn in user_data['cs'].disasm(idc.GetManyBytes(address, idc.ItemSize(address)), address):
+            user_data['trace'].append({'cs_insn':insn, 'uc_ctx':ctx})
+
+        self.fe_userdata = user_data
 
         return
 
-    @staticmethod
-    def tHook(fe, address, argv, userData):
+    def tHook(self, fe, address, argv, userData):
         RamPack().logger.debug("Hit target @ {0}".format(hex(address)))
         return
 
@@ -104,46 +105,61 @@ class RamPack():
 class Magic(RamPack):
     cs = None
 
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("Magic")
+        self.logger.setLevel(loglevel)
         self.cs = self.get_cs()
         return
+
+    def _dump(self):
+        smglobals = self.smglobals_ida()
+        pagefilearray = self.mmpagefilearray_ida()
+        self.logger.info("MAGIC.SmGlobals: 0x{0:x}".format(smglobals))
+        self.logger.info("MAGIC.MmPagingFile: 0x{0:x}".format(pagefilearray))
 
     # Requirements: PDB & IDA
     def smglobals_ida(self):
         for va, name in idautils.Names():
             if "?SmGlobals" in name:
                 return va - idaapi.get_imagebase()
+        self.logger.error("SmGlobals could not be resolved.")
         return None
 
     # Requirements: PDB & IDA
     def mmpagefilearray_ida(self):
         (addr, name) = self.find_ida_name("MiVaIsPageFileHash")
 
-        for insn in self.iter_fn(self.cs, addr):
+        for insn in self.iter_fn(addr):
             if len(insn.operands) == 2:
                 if insn.operands[1].type == capstone.x86.X86_OP_MEM:
                     if insn.operands[1].mem.disp:
                         if insn.sib:
                             if insn.operands[1].mem.disp != 0:
-                                self.logger.info("offset %x" % insn.operands[1].mem.disp)
+                                self.logger.debug("offset %x" % insn.operands[1].mem.disp)
                             if insn.sib_base != 0:
-                                self.logger.info("sib_base: %s" % (insn.reg_name(insn.sib_base)))
+                                self.logger.debug("sib_base: %s" % (insn.reg_name(insn.sib_base)))
                             if insn.sib_index != 0:
-                                self.logger.info("sib_index: %s" % (insn.reg_name(insn.sib_index)))
+                                self.logger.debug("sib_index: %s" % (insn.reg_name(insn.sib_index)))
                             if insn.sib_scale != 0:
-                                self.logger.info("sib_scale: %d" % (insn.sib_scale))
+                                self.logger.debug("sib_scale: %d" % (insn.sib_scale))
                             
                             return insn.operands[1].mem.disp
-
+        self.logger.error("MmPagingFile could not be resolved.")
         return None
 
 
 class SmkmStoreMgr(RamPack):
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE_MGR")
+        self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
         return
+
+    def _dump(self):
+        smkm = self.smkm_ida()
+        btree_global = self.key_to_storetree()
+        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(smkm))
+        self.logger.info("SMKM_STORE_MGR.BTreeGlobalStore: 0x{0:x}".format(btree_global))
 
     def smkm_ida(self):
         return 0    # constant across win10
@@ -170,10 +186,15 @@ class SmkmStoreMgr(RamPack):
 
 
 class Smkm(RamPack):
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM")
+        self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
         return
+
+    def _dump(self):
+        metadata_array = self.store_metadata_array()
+        self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(metadata_array))
 
     def store_metadata_array(self):
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
@@ -187,10 +208,15 @@ class Smkm(RamPack):
 
 
 class SmkmStoreMetadata(RamPack):
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE_METADATA")
+        self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
         return
+
+    def _dump(self):
+        self.logger.info("SMKM_STORE_METADATA.Size: 0x{0:x}".format(self.sizeof()))
+        self.logger.info("SMKM_STORE_METADATA.pSmkmStore: 0x{0:x}".format(self.smkm_store()))
 
     def sizeof(self):
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
@@ -259,9 +285,16 @@ class SmkmStoreMetadata(RamPack):
 
 
 class SmkmStore(RamPack):
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE")
+        self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
+        return
+
+    def _dump(self):
+        self.logger.info("SMKM_STORE.StStore: 0x{0:x}".format(self.st_store()))
+        self.logger.info("SMKM_STORE.pCompressedRegionPtrArray: 0x{0:x}".format(self.compressed_region_ptr_array()))
+        self.logger.info("SMKM_STORE.StoreOwnerProcess: 0x{0:x}".format(self.store_owner_process()))
         return
 
     def sizeof(self):
@@ -363,7 +396,7 @@ class SmkmStore(RamPack):
 
         # isolates the call block I'm interested in
         t_filtered = []
-        for t in self.fe.getUserStorage()['trace']:
+        for t in self.fe_userdata['trace']:
             t_filtered.append(t)
             if capstone.x86.X86_GRP_JUMP in t['cs_insn'].groups:
                 endAddr = t['cs_insn'].address
@@ -373,7 +406,6 @@ class SmkmStore(RamPack):
         self.fe.mu.context_restore(t_filtered[-1]['uc_ctx'])
         reg_esi = self.fe.mu.reg_read(unicorn.x86_const.UC_X86_REG_ESI)
         return pat.find(struct.pack("<I", reg_esi))
-
 
     def sm_virtual_region(self):
         (fn_addr, fn_name) = self.find_ida_name("SmStCheckLockInProgressRegionComplete")
@@ -393,8 +425,6 @@ class SmkmStore(RamPack):
 
         def pHook(self, mu, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            fe = userData['EmuHelper']
-            user_storage = fe.getUserStorage()
             self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_smkmstore)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
@@ -408,9 +438,14 @@ class SmkmStore(RamPack):
 
 
 class StStore(RamPack):
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
+        self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
+        return
+
+    def _dump(self):
+        self.logger.info("ST_STORE.StDataMgr: 0x{0:x}".format(self.st_data_mgr()))
         return
 
     def sizeof(self):
@@ -423,9 +458,19 @@ class StStore(RamPack):
 
 
 class StDataMgr(RamPack):
-    def __init__(self):
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
+        self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
+        return
+
+    def _dump(self):
+        self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.pages_tree()))
+        self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.chunk_metadata()))
+        self.logger.info("ST_DATA_MGR.SmkmStore: 0x{0:x}".format(self.smkm_store()))
+        self.logger.info("ST_DATA_MGR.RegionSizeMask: 0x{0:x}".format(self.region_size_mask()))
+        self.logger.info("ST_DATA_MGR.RegionLSB: 0x{0:x}".format(self.region_lsb()))
+        self.logger.info("ST_DATA_MGR.CompressionAlg: 0x{0:x}".format(self.compression_format_and_engine()))
         return
 
     def sizeof(self):
@@ -458,7 +503,6 @@ class StDataMgr(RamPack):
         def pHook(self, mu, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
             fe = userData['EmuHelper']
-            user_storage = fe.getUserStorage()
             self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
@@ -474,18 +518,17 @@ class StDataMgr(RamPack):
         def pHook(self, mu, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
             fe = userData['EmuHelper']
-            user_storage = fe.getUserStorage()
             self.mu.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
 
         def fn_path(origin, destination, fpath=[]):
-            for x in XrefsTo(destination):
-                x_fn = get_func_attr(x.frm, FUNCATTR_START)
+            for x in idautils.XrefsTo(destination):
+                x_fn = idc.get_func_attr(x.frm, idc.FUNCATTR_START)
                 if x_fn == origin:
                     fpath.append(x_fn)
                     return fpath
             
-            for x in XrefsTo(destination):
-                x_fn = get_func_attr(x.frm, FUNCATTR_START)
+            for x in idautils.XrefsTo(destination):
+                x_fn = idc.get_func_attr(x.frm, idc.FUNCATTR_START)
                 fpath.append(x_fn)
                 return check_xrefs(origin, x_fn, fpath)
 
@@ -499,13 +542,13 @@ class StDataMgr(RamPack):
         return pat, pat_shl4
 
     def region_lsb(self):
-        return
+        return 0
 
     def data_offset_in_compressed_buf(self):
         return
 
     def compression_format_and_engine(self):
-        return
+        return 0
 
     def smcr_integrity(self):
         return
@@ -519,12 +562,14 @@ class DumpConfig():
         return
 
 def main():
-    mgc = Magic()
-    smglobals = mgc.smglobals_ida()
-    pagefilearray = mgc.mmpagefilearray_ida()
-    logging.info("nt!SmGlobals: {0:x}".format(smglobals))
-    logging.info("nt!MmPagingFile: {0:x}".format(pagefilearray))
+    Magic()._dump()
+    SmkmStoreMgr()._dump()
+    Smkm()._dump()
+    SmkmStoreMetadata()._dump()
+    SmkmStore()._dump()
+    StStore()._dump()
+    StDataMgr()._dump()
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     main()
