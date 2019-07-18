@@ -18,13 +18,12 @@ class RamPack():
         return
 
     def find_ida_name(self, fn_name):
-        self.logger.debug("searching for {0}...".format(fn_name))
+        self.logger.debug("Searching for {0}...".format(fn_name))
         for name_addr in idautils.Names():
             if fn_name in name_addr[1]:
                 self.logger.debug("found {0} @ {1}".format(name_addr[1], hex(name_addr[0])))
                 return name_addr
         self.logger.error("{0} NOT FOUND".format(fn_name))
-        return None
 
     def get_cs(self):
         cs = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
@@ -41,35 +40,67 @@ class RamPack():
             for insn in cs.disasm(idc.GetManyBytes(insn_addr, idc.ItemSize(insn_addr)), insn_addr):
                 yield insn
 
-    def locate_call_in_fn(self, fn_start, fn_call):
-        (addr_start, name_start) = self.find_ida_name(fn_start)
-        (addr_end, name_end) = self.find_ida_name(fn_call)
+    def locate_call_in_fn(self, fns_start, fns_call):
+        if type(fns_start) is not list:
+            fns_start = [fns_start]
+        if type(fns_call) is not list:
+            fns_call = [fns_call]
 
-        for insn in self.iter_fn(addr_start):
-            if insn.id == capstone.x86.X86_INS_CALL:
-                if insn.operands[0].type == capstone.x86.X86_OP_IMM:
-                    call_offset = insn.operands[0].imm
-                    if call_offset == addr_end:
-                        endAddr = insn.address
-                        self.logger.debug("located {0} in {1} @ {2}".format(name_end, name_start, hex(endAddr)))
-                        return (addr_start, endAddr)
-        self.logger.error("Failed to locate {0}".format(name_end))
+        for fn_start in fns_start:
+            for fn_call in fns_call:
+                (addr_start, name_start) = self.find_ida_name(fn_start)
+                (addr_end, name_end) = self.find_ida_name(fn_call)
+
+                for insn in self.iter_fn(addr_start):
+                    if insn.id == capstone.x86.X86_INS_CALL:
+                        if insn.operands[0].type == capstone.x86.X86_OP_IMM:
+                            call_offset = insn.operands[0].imm
+                            if call_offset == addr_end:
+                                addr_end = insn.address
+                                self.logger.debug("located {0} in {1} @ 0x{2:x}".format(name_end, name_start, addr_end))
+                                return (addr_start, addr_end)
+                self.logger.error("Failed to locate {0} within {1}".format(name_end, name_start))
+
+        self.logger.error("locate_call_in_fn failed")
         return (None, None)
 
     @staticmethod
-    def patgen(buf_len):
+    def patgen(buf_len, size=4):
         pat = ""
         symbols = "`~!@#$%^&*()-=_+[]\{}|;':,./<>?"
-        for u in string.ascii_uppercase:
-            for l in string.ascii_lowercase:
-                for i in string.digits:
-                    for s in symbols:
-                        pat += "".join([u,l,i,s])
+        if size == 4:
+            for u in string.ascii_uppercase:
+                for l in string.ascii_lowercase:
+                    for i in string.digits:
+                        for s in symbols:
+                            pat += "".join([u,l,i,s])
+                            buf_len -= 3
+                            if buf_len < 0:
+                                return pat
+        elif size == 3:
+            for u in string.ascii_uppercase:
+                for l in string.ascii_lowercase:
+                    for i in string.digits:
+                        pat += "".join([u,l,i])
                         buf_len -= 3
                         if buf_len < 0:
                             return pat
 
+        elif size == 2:
+            for u in string.ascii_uppercase:
+                for l in string.ascii_lowercase:
+                        pat += "".join([u,l])
+                        buf_len -= 3
+                        if buf_len < 0:
+                            return pat
+                        
+        else:
+            self.logger.error("Unsupported size fed to pattern generator")
 
+
+    """
+    Use with instructionHook callback to get a disassembly + reg dump
+    """
     def eHookDbg(self, uc, address, size, user_data):
         fe = user_data['EmuHelper']
         dis = idc.GetDisasm(address)
@@ -156,10 +187,10 @@ class SmkmStoreMgr(RamPack):
         return
 
     def _dump(self):
-        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(self.smkm_ida()))
+        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(self.smkm()))
         self.logger.info("SMKM_STORE_MGR.BTreeGlobalStore: 0x{0:x}".format(self.key_to_storetree()))
 
-    def smkm_ida(self):
+    def smkm(self):
         return 0    # constant across win10
         
     def vlock(self):
@@ -174,7 +205,6 @@ class SmkmStoreMgr(RamPack):
 
     def key_to_storetree(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?SmFeCheckPresent", "?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY")
-
         # @start ecx is SmkmStoreMgr and instantiated to 0.
         # @end ecx is the pushlock argument, diff to get struct offset 
         addr_smkmstoremgr = 0x1000
@@ -241,7 +271,7 @@ class SmkmStoreMetadata(RamPack):
         return self.fe.getRegVal('eax') + 1
 
     def smkm_store(self):
-        (startAddr, endAddr) = self.locate_call_in_fn("SmIoCtxQueueWork", "SmWorkItemQueue")
+        (startAddr, endAddr) = self.locate_call_in_fn("SmIoCtxQueueWork", ["SmWorkItemQueue", "SmStWorkItemQueue"])
         self.fe.iterate([endAddr], self.tHook)
         return self.fe.getRegVal('ecx')
 
@@ -390,26 +420,26 @@ class SmkmStore(RamPack):
         pat = self.patgen(8192)
         lp_smkmstore = self.fe.loadBytes(pat)
         regState = {'ecx':lp_smkmstore}
-        mu = self.fe.emulateRange(fn_addr, registers=regState, instructionHook=self.eHookTrace)
 
-        # isolates the call block I'm interested in
-        print "\n\n"
-        t_filtered = []
-        for t in self.fe_userdata['trace']:
-            t_filtered.append(t)
-            if capstone.x86.X86_GRP_JUMP in t['cs_insn'].groups:
-                endAddr = t['cs_insn'].address
-                self.logger.debug("jump class @ {}".format(hex(endAddr)))
-                break
+        mHookOutput = {'pattern':None}
+        def mHook(uc, accessType, memAccessAddress, memAccessSize, memValue, userData):
+            if mHookOutput['pattern']:
+                return
 
-        # Check for dereferenced memory that was created by FLARE_EMU
-        mem_diff = set(t_filtered[-1]['mem_regions']).difference(set(t_filtered[0]['mem_regions']))
-        if len(mem_diff) != 1:
-            self.logger.error("Multiple mem regions allocated...")
-        mem_allocated = mem_diff.pop()
-        print mem_allocated
-        # Sketchy territory. Unicorn mem addresses end w/ 000, invalidating first two bytes of the search pattern...
-        return pat.find(struct.pack("<I",mem_allocated)[-3:]) 
+            if accessType == unicorn.unicorn_const.UC_MEM_READ:
+                self.logger.debug("Mem read @ 0x{0:x}: {1}".format(memAccessAddress, memValue))
+                read_bytes = userData["EmuHelper"].getEmuBytes(memAccessAddress, memAccessSize)
+                mHookOutput['pattern'] = read_bytes
+            elif accessType == unicorn.unicorn_const.UC_MEM_WRITE:
+                self.logger.debug("Mem write @ 0x{0:x}".format(memAccessAddress))
+            elif accessType == unicorn.unicorn_const.UC_MEM_FETCH:
+                self.logger.debug("Mem fetch @ 0x{0:x}".format(memAccessAddress))
+            else:
+                self.logger.error("Mem unknown accessType @ 0x{0:x}".format(memAccessAddress))
+
+        mu = self.fe.emulateRange(fn_addr, registers=regState, instructionHook=self.eHookTrace, memAccessHook=mHook)
+
+        return pat.find(mHookOutput['pattern'])
 
     def sm_virtual_region(self):
         (fn_addr, fn_name) = self.find_ida_name("SmStCheckLockInProgressRegionComplete")
@@ -423,7 +453,7 @@ class SmkmStore(RamPack):
         return smkmstore_bytes.find("\x00"*4)
         
     def store_owner_process(self):
-        (startAddr, endAddr) = self.locate_call_in_fn("SmStDirectRead", "KiStackAttachProcess")
+        (startAddr, endAddr) = self.locate_call_in_fn("?SmStDirectRead@?$SMKM_STORE", "KiStackAttachProcess")
         pat = self.patgen(8192)
         lp_smkmstore = self.fe.loadBytes(pat)
 
@@ -564,7 +594,7 @@ class StDataMgr(RamPack):
         return 0
 
     def compression_format_and_engine(self):
-        pat = self.patgen(8192)
+        pat = self.patgen(1024, size=2)  # Reduced pattern len & size to detect WORD
         lp_stdatamgr = self.fe.loadBytes(pat)
         region_lsb_pattern = {'pattern':0}
 
@@ -572,7 +602,7 @@ class StDataMgr(RamPack):
             self.logger.debug("pre emulation hook loading ECX")
             userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
 
-        (startAddr, endAddr) = self.locate_call_in_fn("?StDmSinglePageCopy", "_RtlDecompressBufferEx")
+        (startAddr, endAddr) = self.locate_call_in_fn("?StDmSinglePageCopy", "_RtlDecompressBufferEx@")
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
         reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
         stack_bytes = self.fe.getEmuBytes(reg_esp, 0x2) # Using 0x2 because this is a WORD field
@@ -584,19 +614,48 @@ class StDataMgr(RamPack):
     def region_written_size_array(self):
         return
         
+"""
+'_ST_CHUNK_METADATA': [None, {
+    'ChunkPtrArray': [0x0, ['array', 32, ['pointer', ['void']]]],
+    'BitValue': [0x108, ['unsigned int']],
+    'PageRecordsPerChunkMask': [0x10C, ['unsigned int']],
+    'PageRecordSize': [0x110, ['unsigned int']],
+    'ChunkPageHeaderSize': [0x118, ['unsigned int']],
+}],
+"""
+class StChunkMetadata(RamPack):
+    def __init__(self, loglevel=logging.INFO):
+        self.logger = logging.getLogger("ST_CHUNK_METADATA")
+        self.logger.setLevel(loglevel)
+        self.fe = self.get_flare_emu()
+        return
 
-class DumpConfig():
-    def __init__(self):
+    def _dump():
+        return
+
+    def chunk_ptr_array(self):
+        return
+
+    def bit_value(self):
+        return
+
+    def page_records_per_chunk_mask(self):
+        return
+
+    def page_record_size(self):
+        return
+
+    def chunk_page_header_size(self):
         return
 
 def main():
-    # Magic()._dump()
-    # SmkmStoreMgr()._dump()
-    # Smkm()._dump()
-    # SmkmStoreMetadata()._dump()
+    Magic()._dump()
+    SmkmStoreMgr()._dump()
+    Smkm()._dump()
+    SmkmStoreMetadata()._dump()
     SmkmStore()._dump()
-    # StStore()._dump()
-    # StDataMgr()._dump()
+    StStore()._dump()
+    StDataMgr()._dump()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
