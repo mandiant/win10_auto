@@ -13,8 +13,8 @@ from flare_emu import flare_emu
 
 from RamPack import RamPack
 
-
-def __init__(self, loglevel=logging.INFO):
+class StDataMgr():
+    def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
