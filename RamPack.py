@@ -1,13 +1,10 @@
 import logging
-import struct
 import string
 
 import idc
 import idautils
-import idaapi
 
 import capstone
-import unicorn
 
 from flare_emu import flare_emu
 

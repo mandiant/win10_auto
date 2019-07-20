@@ -1,6 +1,5 @@
 import logging
 
-from RamPack import RamPack
 from Magic import Magic
 from SmkmStoreMgr import SmkmStoreMgr
 from Smkm import Smkm
