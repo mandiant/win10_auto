@@ -9,11 +9,9 @@ import idaapi
 import capstone
 import unicorn
 
-from flare_emu import flare_emu
-
 from RamPack import RamPack
 
-class StDataMgr():
+class StDataMgr(RamPack):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)

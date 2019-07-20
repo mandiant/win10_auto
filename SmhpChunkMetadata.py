@@ -9,8 +9,6 @@ import idaapi
 import capstone
 import unicorn
 
-from flare_emu import flare_emu
-
 from RamPack import RamPack
 
 """
