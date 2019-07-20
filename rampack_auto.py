@@ -8,16 +8,16 @@ from SmkmStore import SmkmStore
 from StStore import StStore
 from StDataMgr import StDataMgr
 
-def main():
-    Magic()._dump32()
-    SmkmStoreMgr()._dump32()
-    Smkm()._dump32()
-    SmkmStoreMetadata()._dump32()
-    SmkmStore()._dump32()
-    StStore()._dump32()
-    StDataMgr()._dump32()
+def main(loglevel=logging.INFO):
+    Magic(loglevel=loglevel)._dump()
+    SmkmStoreMgr(loglevel=loglevel)._dump()
+    Smkm(loglevel=loglevel)._dump()
+    SmkmStoreMetadata(loglevel=loglevel)._dump()
+    SmkmStore(loglevel=loglevel)._dump()
+    StStore(loglevel=loglevel)._dump()
+    StDataMgr(loglevel=loglevel)._dump()
     return
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    main()
+    main(loglevel=logging.INFO)
