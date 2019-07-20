@@ -5,7 +5,7 @@ import unicorn
 from RamPack import RamPack
 
 
-class SmhpChunkMetadata(RamPack):
+class StStore(RamPack):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)
