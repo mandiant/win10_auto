@@ -38,9 +38,9 @@ class RamPack():
         for name_addr in idautils.Names():
             if fn_name in name_addr[1]:
                 self.logger.debug("found {0} @ {1}".format(name_addr[1], hex(name_addr[0])))
-                return name_addr
-        self.logger.error("{0} NOT FOUND".format(fn_name))
-        return None
+                return name_addr #Tuple
+        self.logger.debug("{0} not found".format(fn_name))
+        return None, None
 
     def get_flare_emu(self, loglevel=logging.INFO):
         fe = flare_emu.EmuHelper(loglevel=loglevel)
@@ -59,6 +59,8 @@ class RamPack():
 
         for fn_start in fns_start:
             (addr_start, name_start) = self.find_ida_name(fn_start)
+            if addr_start is None or name_start is None:
+                continue
             for fn_call in fns_call:
                 (addr_end, name_end) = self.find_ida_name(fn_call)
 
@@ -84,25 +86,25 @@ class RamPack():
                     for i in string.digits:
                         for s in symbols:
                             pat += "".join([u, l, i, s])
-                            buf_len -= 3
+                            buf_len -= size
                             if buf_len < 0:
-                                return pat
+                                return pat[:buf_len]
         elif size == 3:
             for u in string.ascii_uppercase:
                 for l in string.ascii_lowercase:
                     for i in string.digits:
                         pat += "".join([u, l, i])
-                        buf_len -= 3
+                        buf_len -= size
                         if buf_len < 0:
-                            return pat
+                            return pat[:buf_len]
 
         elif size == 2:
-            for u in string.ascii_uppercase:
+            for u in string.ascii_uppercase + symbols:
                 for l in string.ascii_lowercase:
                     pat += "".join([u, l])
-                    buf_len -= 3
+                    buf_len -= size
                     if buf_len < 0:
-                        return pat
+                        return pat[:buf_len]
 
     """
     Use with instructionHook callback to get a disassembly + reg dump
