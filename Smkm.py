@@ -11,20 +11,25 @@ class Smkm(RamPack):
         self.fe = self.get_flare_emu()
         return
 
-    def _dump32(self):
-        self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns['x86']['sk32_storemetadataarray'](self)))
-        return
-
-    def _dump64(self):
+    def _dump(self):
+        if self.Info.is_64bit():
+            self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns['x64']['sk_storemetadataarray'](self)))
+        else:
+            self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns['x86']['sk_storemetadataarray'](self)))
         return
 
     @RamPack.Info.arch32
-    def sk32_storemetadataarray(self):
+    @RamPack.Info.arch64
+    def sk_storemetadataarray(self):
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
-
-        addr_smkmstoremgr = 0x1000
-        lp_addr_smkmstoremgr = self.fe.loadBytes(struct.pack("<I", addr_smkmstoremgr))
+        lp_addr_smkmstoremgr = self.fe.loadBytes(struct.pack("<I", 0x1000))
         num_store = 0x0
-        regState = {'ecx':lp_addr_smkmstoremgr, 'edx':num_store}
+        if self.Info.is_64bit():
+            reg_cx = 'rcx'
+            reg_dx = 'rdx'
+        else:
+            reg_cx = 'ecx'
+            reg_dx = 'edx'
+        regState = {reg_cx:lp_addr_smkmstoremgr, reg_dx:num_store}
         self.fe.emulateRange(fn_addr, registers=regState)
-        return self.fe.getRegVal('ecx') - addr_smkmstoremgr
+        return self.fe.getRegVal(reg_cx) - lp_addr_smkmstoremgr
