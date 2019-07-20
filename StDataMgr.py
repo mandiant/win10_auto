@@ -12,57 +12,52 @@ class StDataMgr(RamPack):
         self.fe = self.get_flare_emu()
         return
 
-    def _dump32(self):
-        self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_localtree'](self)))
-        self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_chunkmetadata'](self)))
-        self.logger.info("ST_DATA_MGR.SmkmStore: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_smkmstore'](self)))
-        self.logger.info("ST_DATA_MGR.RegionSizeMask: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_regionsizemask'](self)))
-        self.logger.info("ST_DATA_MGR.RegionLSB: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_regionlsb'](self)))
-        self.logger.info("ST_DATA_MGR.CompressionAlg: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_compressionformat'](self)))
+    def _dump(self):
+        arch = 'x64' if self.Info.is_64bit() else 'x86'
+        self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_localtree'](self)))
+        self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_chunkmetadata'](self)))
+        self.logger.info("ST_DATA_MGR.SmkmStore: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_smkmstore'](self)))
+        self.logger.info("ST_DATA_MGR.RegionSizeMask: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_regionsizemask'](self)))
+        self.logger.info("ST_DATA_MGR.RegionLSB: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_regionlsb'](self)))
+        self.logger.info("ST_DATA_MGR.CompressionFormat: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_compressionformat'](self)))
         return
 
     def _dump64(self):
         return
 
     @RamPack.Info.arch32
-    def stdm32_localtree(self):
+    @RamPack.Info.arch64
+    def stdm_localtree(self):
         # appears to always be first entry
         return 0
 
     @RamPack.Info.arch32
-    def stdm32_chunkmetadata(self):
+    @RamPack.Info.arch64
+    def stdm_chunkmetadata(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmpSinglePageAdd", "SmHpChunkAlloc")
         self.fe.iterate([endAddr], self.tHook)
-        return self.fe.getRegVal("ecx")
+        reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'
+        return self.fe.getRegVal(reg_cx)
 
     @RamPack.Info.arch32
-    def stdm32_smkmstore(self):
+    @RamPack.Info.arch64
+    def stdm_smkmstore(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StReleaseRegion", "?SmStReleaseVirtualRegion")
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
+        reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'
+        struct_fmt = "<Q" if self.Info.is_64bit() else "<I"
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
             userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_ecx = self.fe.getRegVal("ecx")
-        return pat.find(struct.pack("<I", reg_ecx))
-
-    """
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+47   024 mov     eax, [ebx+ST_DATA_MGR.dwRegionMask]
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+4D   024 lea     edx, [ebx+20Ch]
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+53   024 push    ecx
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+54   028 inc     eax
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+55   028 push    eax
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+56   02C push    ecx
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+57   030 push    edi
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+58   034 mov     ecx, ebx
-    ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+5A   034 call    ?StDmRegionEvict@?$ST_STORE@USM_TRAITS@@@@SGJPAU_ST_DATA_MGR@1@PAU_STDM_SEARCH_RESULTS@1@KKKK@Z ; ST_STORE<SM_TRAITS>::StDmRegionEvict(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ST_STORE<SM_TRAITS>::_STDM_SEARCH_RESULTS *,ulong,ulong,ulong,ulong)
-    """
+        return pat.find(struct.pack(struct_fmt, self.fe.getRegVal(reg_cx)))
 
     @RamPack.Info.arch32
-    def stdm32_regionsizemask(self):
+    @RamPack.Info.arch64
+    def stdm_regionsizemask(self):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
 
@@ -71,16 +66,22 @@ class StDataMgr(RamPack):
             userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmRegionRemove", "?StDmRegionEvict")
-
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        third_arg = self.fe.getArgv()[2]
-        return pat.find(struct.pack("<I", third_arg - 1))
+        if self.Info.is_64bit():
+            reg_rsp = self.fe.getRegVal("rsp")
+            stack_bytes = self.fe.getEmuBytes(reg_rsp, 0x28)
+            third_arg = struct.unpack("<Q", stack_bytes[0x20:])[0]
+        else:
+            third_arg = self.fe.getArgv()[2]
+        return pat.find(struct.pack("<I", third_arg - 1))  # Must be "<I" due to retrieval of a DWORD
 
     @RamPack.Info.arch32
-    def stdm32_regionlsb(self):
+    @RamPack.Info.arch64
+    def stdm_regionlsb(self):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
-        region_lsb_pattern = {'pattern': 0}
+        iHookData = {'pattern': None}
+        struct_fmt = "<Q" if self.Info.is_64bit() else "<I"
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
@@ -89,26 +90,28 @@ class StDataMgr(RamPack):
         # Using an instruction hook because data in offset is difficult to track beyond arithmetic ops like shr
         def iHook(uc, address, size, userData):
             dis = idc.GetDisasm(address)
-            if "shr" in dis:
-                # This is the "equivalent" of using nonlocal in py3
-                region_lsb_pattern['pattern'] += userData['EmuHelper'].uc.reg_read(userData["EmuHelper"].regs["cx"])
+            if "shr" in dis[:3]:
+                iHookData['pattern'] = struct.pack("<I", userData['EmuHelper'].uc.reg_read(userData["EmuHelper"].regs["cx"]))
 
         (startAddr, endAddr) = self.locate_call_in_fn("?StDeviceWorkItemCleanup", "?StRegionReadDereference")
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=iHook)
-        return pat.find(struct.pack("<I", region_lsb_pattern["pattern"]))
+        return pat.find(iHookData["pattern"])
 
     @RamPack.Info.arch32
-    def stdm32_compressionformat(self):
-        pat = self.patgen(1024, size=2)  # Reduced pattern len & size to detect WORD
+    @RamPack.Info.arch64
+    def stdm_compressionformat(self):
+        pat = self.patgen(2048, size=2)  # Reduced pattern len & size to detect WORD
         lp_stdatamgr = self.fe.loadBytes(pat)
-        region_lsb_pattern = {'pattern': 0}
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
             userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
-        (startAddr, endAddr) = self.locate_call_in_fn("?StDmSinglePageCopy", "_RtlDecompressBufferEx@")
+        (startAddr, endAddr) = self.locate_call_in_fn("?StDmSinglePageCopy", ["_RtlDecompressBufferEx@", "RtlDecompressBufferEx"])
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_esp = self.fe.getRegVal("esp")
-        stack_bytes = self.fe.getEmuBytes(reg_esp, 0x2)  # Using 0x2 because this is a WORD field
-        return pat.find(stack_bytes)
+        if self.Info.is_64bit():
+            pattern = struct.pack("H", self.fe.getRegVal("rcx"))
+        else:
+            reg_esp = self.fe.getRegVal("esp")
+            pattern = self.fe.getEmuBytes(reg_esp, 0x2)  # Using 0x2 because this is a WORD field
+        return pat.find(pattern)
