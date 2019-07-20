@@ -81,7 +81,6 @@ class StDataMgr(RamPack):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
         iHookData = {'pattern': None}
-        struct_fmt = "<Q" if self.Info.is_64bit() else "<I"
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
