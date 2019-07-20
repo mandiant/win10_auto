@@ -3,6 +3,7 @@ import string
 
 import idc
 import idautils
+import idaapi
 
 import capstone
 
@@ -23,9 +24,15 @@ class RamPack():
             self.arch_fns['x64'][fn.__name__] = fn
             return fn
 
+        @staticmethod
+        def is_64bit():
+            info = idaapi.get_inf_structure()
+            return info.is_64bit()
+
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("RamPack")  # TODO overwritten by child logs
         self.logger.setLevel(loglevel)
+        self.info = self.Info()
         return
 
     def find_ida_name(self, fn_name):
@@ -78,6 +85,7 @@ class RamPack():
     @staticmethod
     def patgen(buf_len, size=4):
         pat = ""
+
         symbols = "`~!@#$%^&*()-=_+[]\{}|;':,./<>?"
         if size == 4:
             for u in string.ascii_uppercase:
