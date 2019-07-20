@@ -115,26 +115,6 @@ class RamPack():
         fe.logger.info("\n".join([dis, fe.getEmuState()]))
         return
 
-    def eHookDerefMonitor(self, uc, address, size, user_data):
-        # possible TODO
-        return
-
-    def eHookTrace(self, uc, address, size, user_data):
-        if not user_data.has_key('cs'):
-            user_data['cs'] = RamPack().get_cs()
-            RamPack().logger.debug("created cs instance")
-        if not user_data.has_key('trace'):
-            user_data['trace'] = []
-
-        ctx = uc.context_save()
-        for insn in user_data['cs'].disasm(idc.GetManyBytes(address, idc.ItemSize(address)), address):
-            mem_regions = [reg_start for (reg_start, reg_end, reg_perms) in uc.mem_regions()]
-            user_data['trace'].append({'cs_insn': insn, 'uc_ctx': ctx, 'mem_regions': tuple(mem_regions)})
-
-        # self.fe_userdata['trace'] = copy.deepcopy(user_data['trace']) IDA falls over
-        self.fe_userdata = user_data  # TODO - Objects in dictionary may not be accurate due to linking
-        return
-
     def tHook(self, fe, address, argv, userData):
         RamPack().logger.debug("Hit target @ {0}".format(hex(address)))
         return
