@@ -3,8 +3,6 @@ import struct
 
 import idc
 
-import unicorn
-
 from RamPack import RamPack
 
 class StDataMgr(RamPack):
@@ -35,7 +33,7 @@ class StDataMgr(RamPack):
     def stdm32_chunkmetadata(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmpSinglePageAdd", "SmHpChunkAlloc")
         self.fe.iterate([endAddr], self.tHook)
-        return self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        return self.fe.getRegVal("ecx")
 
     @RamPack.Info.arch32
     def stdm32_smkmstore(self):
@@ -45,10 +43,10 @@ class StDataMgr(RamPack):
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+            userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_ecx = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        reg_ecx = self.fe.getRegVal("ecx")
         return pat.find(struct.pack("<I", reg_ecx))
 
     """
@@ -70,15 +68,13 @@ class StDataMgr(RamPack):
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+            userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmRegionRemove", "?StDmRegionEvict")
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
-        stack_bytes = self.fe.getEmuBytes(reg_esp, 0xC)
-        third_arg = stack_bytes[0x8:]
-        return pat.find(struct.pack("<I", struct.unpack("<I", third_arg)[0] - 1))
+        third_arg = struct.pack("<I", self.fe.getArgv()[2])
+        return pat.find(third_arg - 1)
 
     @RamPack.Info.arch32
     def stdm32_regionlsb(self):
@@ -88,14 +84,14 @@ class StDataMgr(RamPack):
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+            userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
         # Using an instruction hook because data in offset is difficult to track beyond arithmetic ops like shr
-        def iHook(uc, address, size, user_data):
+        def iHook(uc, address, size, userData):
             dis = idc.GetDisasm(address)
             if "shr" in dis:
                 # This is the "equivalent" of using nonlocal in py3
-                region_lsb_pattern['pattern'] += user_data['EmuHelper'].uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+                region_lsb_pattern['pattern'] += userData['EmuHelper'].uc.reg_read(userData["EmuHelper"].regs["cx"])
 
         (startAddr, endAddr) = self.locate_call_in_fn("?StDeviceWorkItemCleanup", "?StRegionReadDereference")
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=iHook)
@@ -109,10 +105,10 @@ class StDataMgr(RamPack):
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            userData['EmuHelper'].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_stdatamgr)
+            userData['EmuHelper'].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_stdatamgr)
 
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmSinglePageCopy", "_RtlDecompressBufferEx@")
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
+        reg_esp = self.fe.getRegVal("esp")
         stack_bytes = self.fe.getEmuBytes(reg_esp, 0x2)  # Using 0x2 because this is a WORD field
         return pat.find(stack_bytes)

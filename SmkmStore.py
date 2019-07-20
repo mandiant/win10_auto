@@ -1,8 +1,6 @@
 import logging
 import struct
 
-import unicorn
-
 from RamPack import RamPack
 
 
@@ -14,9 +12,9 @@ class SmkmStore(RamPack):
         return
 
     def _dump32(self):
-        self.logger.info("SMKM_STORE.StStore: 0x{0:x}".format(self.Info.arch_fns['x86']['sks32_ststore'](self)))
-        self.logger.info("SMKM_STORE.pCompressedRegionPtrArray: 0x{0:x}".format(self.Info.arch_fns['x86']['sks32_compressedregionptrarray'](self)))
-        self.logger.info("SMKM_STORE.StoreOwnerProcess: 0x{0:x}".format(self.Info.arch_fns['x86']['sks32_storeownerprocess'](self)))
+        self.logger.info("SMKM_STORE.StStore: {0:#x}".format(self.Info.arch_fns['x86']['sks32_ststore'](self)))
+        self.logger.info("SMKM_STORE.pCompressedRegionPtrArray: {0:#x}".format(self.Info.arch_fns['x86']['sks32_compressedregionptrarray'](self)))
+        self.logger.info("SMKM_STORE.StoreOwnerProcess: {0:#x}".format(self.Info.arch_fns['x86']['sks32_storeownerprocess'](self)))
         return
 
     def _dump64(self):
@@ -34,26 +32,24 @@ class SmkmStore(RamPack):
         lp_smkmstore = self.fe.loadBytes(pat)
         regState = {'ecx': lp_smkmstore}
 
-        mHookOutput = {'pattern': None}
+        mHookData = {'offset': None, 'structAddr': lp_smkmstore}
 
         def mHook(uc, accessType, memAccessAddress, memAccessSize, memValue, userData):
-            if mHookOutput['pattern']:
+            if mHookData['offset']:
                 return
 
-            if accessType == unicorn.unicorn_const.UC_MEM_READ:
+            if accessType == 16: # UC_MEM_READ
                 self.logger.debug("Mem read @ 0x{0:x}: {1}".format(memAccessAddress, memValue))
-                read_bytes = userData["EmuHelper"].getEmuBytes(memAccessAddress, memAccessSize)
-                mHookOutput['pattern'] = read_bytes
-            elif accessType == unicorn.unicorn_const.UC_MEM_WRITE:
+                mHookData['offset'] = memAccessAddress
+            elif accessType == 17: # UC_MEM_WRITE
                 self.logger.debug("Mem write @ 0x{0:x}".format(memAccessAddress))
-            elif accessType == unicorn.unicorn_const.UC_MEM_FETCH:
+            elif accessType == 18: # UC_MEM_FETCH
                 self.logger.debug("Mem fetch @ 0x{0:x}".format(memAccessAddress))
             else:
                 self.logger.error("Mem unknown accessType @ 0x{0:x}".format(memAccessAddress))
 
         mu = self.fe.emulateRange(fn_addr, registers=regState, instructionHook=self.eHookTrace, memAccessHook=mHook)
-
-        return pat.find(mHookOutput['pattern'])
+        return mHookData['offset'] - mHookData['structAddr']
 
     @RamPack.Info.arch32
     def sks32_storeownerprocess(self):
@@ -63,8 +59,8 @@ class SmkmStore(RamPack):
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            userData["EmuHelper"].uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, lp_smkmstore)
+            userData["EmuHelper"].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_smkmstore)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        reg_ecx = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
+        reg_ecx = self.fe.getRegVal("ecx")
         return pat.find(struct.pack("<I", reg_ecx))
