@@ -12,10 +12,8 @@ class Smkm(RamPack):
         return
 
     def _dump(self):
-        if self.Info.is_64bit():
-            self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns['x64']['sk_storemetadataarray'](self)))
-        else:
-            self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns['x86']['sk_storemetadataarray'](self)))
+        arch = 'x64' if self.Info.is_64bit() else 'x86'
+        self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns[arch]['sk_storemetadataarray'](self)))
         return
 
     @RamPack.Info.arch32

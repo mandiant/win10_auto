@@ -10,12 +10,9 @@ class SmkmStoreMgr(RamPack):
         return
 
     def _dump(self):
-        if self.Info.is_64bit():
-            self.logger.info("SMKM_STORE_MGR.sSmKm: {0:#x}".format(self.Info.arch_fns['x64']['sksm_smkm'](self)))
-            self.logger.info("SMKM_STORE_MGR.sGlobalTree: {0:#x}".format(self.Info.arch_fns['x64']['sksm_globaltree'](self)))
-        else:
-            self.logger.info("SMKM_STORE_MGR.sSmKm: {0:#x}".format(self.Info.arch_fns['x86']['sksm_smkm'](self)))
-            self.logger.info("SMKM_STORE_MGR.sGlobalTree: {0:#x}".format(self.Info.arch_fns['x86']['sksm_globaltree'](self)))
+        arch = 'x64' if self.Info.is_64bit() else 'x86'
+        self.logger.info("SMKM_STORE_MGR.sSmKm: {0:#x}".format(self.Info.arch_fns[arch]['sksm_smkm'](self)))
+        self.logger.info("SMKM_STORE_MGR.sGlobalTree: {0:#x}".format(self.Info.arch_fns[arch]['sksm_globaltree'](self)))
         return
 
     @RamPack.Info.arch32
