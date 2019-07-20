@@ -11,11 +11,15 @@ class Smkm(RamPack):
         self.fe = self.get_flare_emu()
         return
 
-    def _dump(self):
-        metadata_array = self.store_metadata_array()
-        self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(metadata_array))
+    def _dump32(self):
+        self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns['x86']['sk32_storemetadataarray'](self)))
+        return
 
-    def store_metadata_array(self):
+    def _dump64(self):
+        return
+
+    @RamPack.Info.arch32
+    def sk32_storemetadataarray(self):
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
 
         addr_smkmstoremgr = 0x1000

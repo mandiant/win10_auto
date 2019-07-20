@@ -9,24 +9,20 @@ class SmkmStoreMgr(RamPack):
         self.fe = self.get_flare_emu()
         return
 
-    def _dump(self):
-        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(self.smkm()))
-        self.logger.info("SMKM_STORE_MGR.BTreeGlobalStore: 0x{0:x}".format(self.key_to_storetree()))
+    def _dump32(self):
+        self.logger.info("SMKM_STORE_MGR.Smkm: 0x{0:x}".format(self.Info.arch_fns['x86']['sksm32_smkm'](self)))
+        self.logger.info("SMKM_STORE_MGR.BTreeGlobalStore: 0x{0:x}".format(self.Info.arch_fns['x86']['sksm32_globaltree'](self)))
+        return
 
-    def smkm(self):
+    def _dump64(self):
+        return
+
+    @RamPack.Info.arch32
+    def sksm32_smkm(self):
         return 0  # constant across win10
 
-    def vlock(self):
-        (startAddr, endAddr) = self.locate_call_in_fn("SmFeReadInitiate", "ExAcquirePushLockSharedEx")
-
-        # @start ecx is SmkmStoreMgr and instantiated to 0.
-        # @end ecx is the pushlock argument, diff to get struct offset
-        addr_smkmstoremgr = 0x1000
-        regState = {'ecx': addr_smkmstoremgr}
-        self.fe.emulateRange(startAddr, registers=regState, endAddr=endAddr)
-        return self.fe.getRegVal('ecx') - addr_smkmstoremgr
-
-    def key_to_storetree(self):
+    @RamPack.Info.arch32
+    def sksm32_globaltree(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?SmFeCheckPresent",
                                                       "?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY")
         # @start ecx is SmkmStoreMgr and instantiated to 0.

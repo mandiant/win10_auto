@@ -17,14 +17,17 @@ class Magic(RamPack):
         self.cs = self.get_cs()
         return
 
-    def _dump(self):
-        smglobals = self.smglobals_ida()
-        pagefilearray = self.mmpagefilearray_ida()
-        self.logger.info("MAGIC.SmGlobals: 0x{0:x}".format(smglobals))
-        self.logger.info("MAGIC.MmPagingFile: 0x{0:x}".format(pagefilearray))
+    def _dump32(self):
+        self.logger.info("MAGIC.SmGlobals: 0x{0:x}".format(self.Info.arch_fns['x86']['m32_smglobals'](self)))
+        self.logger.info("MAGIC.MmPagingFile: 0x{0:x}".format(self.Info.arch_fns['x86']['m32_mmpagingfile'](self)))
+        return
+
+    def _dump64(self):
+        return
 
     # Requirements: PDB & IDA
-    def smglobals_ida(self):
+    @RamPack.Info.arch32
+    def m32_smglobals(self):
         for va, name in idautils.Names():
             if "?SmGlobals" in name:
                 return va - idaapi.get_imagebase()
@@ -32,7 +35,8 @@ class Magic(RamPack):
         return None
 
     # Requirements: PDB & IDA
-    def mmpagefilearray_ida(self):
+    @RamPack.Info.arch32
+    def m32_mmpagingfile(self):
         (addr, name) = self.find_ida_name("MiVaIsPageFileHash")
 
         for insn in self.iter_fn(addr):

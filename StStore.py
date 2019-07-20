@@ -12,14 +12,15 @@ class StStore(RamPack):
         self.fe = self.get_flare_emu()
         return
 
-    def _dump(self):
-        self.logger.info("ST_STORE.StDataMgr: 0x{0:x}".format(self.st_data_mgr()))
+    def _dump32(self):
+        self.logger.info("ST_STORE.StDataMgr: 0x{0:x}".format(self.Info.arch_fns['x86']['ss32_stdatamgr'](self)))
         return
 
-    def sizeof(self):
+    def _dump64(self):
         return
 
-    def st_data_mgr(self):
+    @RamPack.Info.arch32
+    def ss32_stdatamgr(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StStart", "StDmStart")
         self.fe.iterate([endAddr], self.tHook)
         return self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_EDX)

@@ -14,38 +14,31 @@ class StDataMgr(RamPack):
         self.fe = self.get_flare_emu()
         return
 
-    def _dump(self):
-        self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.pages_tree()))
-        self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.chunk_metadata()))
-        self.logger.info("ST_DATA_MGR.SmkmStore: 0x{0:x}".format(self.smkm_store()))
-        self.logger.info("ST_DATA_MGR.RegionSizeMask: 0x{0:x}".format(self.region_size_mask()))
-        self.logger.info("ST_DATA_MGR.RegionLSB: 0x{0:x}".format(self.region_lsb()))
-        self.logger.info("ST_DATA_MGR.CompressionAlg: 0x{0:x}".format(self.compression_format_and_engine()))
+    def _dump32(self):
+        self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_localtree'](self)))
+        self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_chunkmetadata'](self)))
+        self.logger.info("ST_DATA_MGR.SmkmStore: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_smkmstore'](self)))
+        self.logger.info("ST_DATA_MGR.RegionSizeMask: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_regionsizemask'](self)))
+        self.logger.info("ST_DATA_MGR.RegionLSB: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_regionlsb'](self)))
+        self.logger.info("ST_DATA_MGR.CompressionAlg: 0x{0:x}".format(self.Info.arch_fns['x86']['stdm32_compressionformat'](self)))
         return
 
-    def sizeof(self):
+    def _dump64(self):
         return
 
-    def pages_tree(self):
+    @RamPack.Info.arch32
+    def stdm32_localtree(self):
         # appears to always be first entry
         return 0
 
-    def chunk_metadata(self):
+    @RamPack.Info.arch32
+    def stdm32_chunkmetadata(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmpSinglePageAdd", "SmHpChunkAlloc")
         self.fe.iterate([endAddr], self.tHook)
         return self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ECX)
 
-    def store_flags(self):
-        (fn_addr, fn_name) = self.find_ida_name("?StDmIsCurrentRegion")
-        self.fe.emulateRange(fn_addr, instructionHook=self.eHookTrace)
-        for t in self.fe.getUserStorage()['trace']:
-            t = t['cs_insn']
-            if t.mnemonic == "cmp":
-                offset = t.operands[0].value.mem.disp
-                break
-        return offset
-
-    def smkm_store(self):
+    @RamPack.Info.arch32
+    def stdm32_smkmstore(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?StReleaseRegion", "?SmStReleaseVirtualRegion")
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
@@ -70,7 +63,8 @@ class StDataMgr(RamPack):
     ST_STORE<SM_TRAITS>::StDmRegionRemove(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ulong *)+5A   034 call    ?StDmRegionEvict@?$ST_STORE@USM_TRAITS@@@@SGJPAU_ST_DATA_MGR@1@PAU_STDM_SEARCH_RESULTS@1@KKKK@Z ; ST_STORE<SM_TRAITS>::StDmRegionEvict(ST_STORE<SM_TRAITS>::_ST_DATA_MGR *,ST_STORE<SM_TRAITS>::_STDM_SEARCH_RESULTS *,ulong,ulong,ulong,ulong)
     """
 
-    def region_size_mask(self):
+    @RamPack.Info.arch32
+    def stdm32_regionsizemask(self):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
 
@@ -86,7 +80,8 @@ class StDataMgr(RamPack):
         third_arg = stack_bytes[0x8:]
         return pat.find(struct.pack("<I", struct.unpack("<I", third_arg)[0] - 1))
 
-    def region_lsb(self):
+    @RamPack.Info.arch32
+    def stdm32_regionlsb(self):
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
         region_lsb_pattern = {'pattern': 0}
@@ -106,10 +101,8 @@ class StDataMgr(RamPack):
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=iHook)
         return pat.find(struct.pack("<I", region_lsb_pattern["pattern"]))
 
-    def data_offset_in_compressed_buf(self):
-        return 0
-
-    def compression_format_and_engine(self):
+    @RamPack.Info.arch32
+    def stdm32_compressionformat(self):
         pat = self.patgen(1024, size=2)  # Reduced pattern len & size to detect WORD
         lp_stdatamgr = self.fe.loadBytes(pat)
         region_lsb_pattern = {'pattern': 0}
@@ -123,9 +116,3 @@ class StDataMgr(RamPack):
         reg_esp = self.fe.uc.reg_read(unicorn.x86_const.UC_X86_REG_ESP)
         stack_bytes = self.fe.getEmuBytes(reg_esp, 0x2)  # Using 0x2 because this is a WORD field
         return pat.find(stack_bytes)
-
-    def smcr_integrity(self):
-        return
-
-    def region_written_size_array(self):
-        return

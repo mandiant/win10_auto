@@ -10,6 +10,19 @@ from flare_emu import flare_emu
 
 
 class RamPack():
+    class Info():
+        arch_fns = {'x86': {}, 'x64': {}}
+
+        @classmethod
+        def arch32(self, fn):
+            self.arch_fns['x86'][fn.__name__] = fn
+            return fn
+
+        @classmethod
+        def arch64(self, fn):
+            self.arch_fns['x64'][fn.__name__] = fn
+            return fn
+
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("RamPack")  # TODO overwritten by child logs
         self.logger.setLevel(loglevel)

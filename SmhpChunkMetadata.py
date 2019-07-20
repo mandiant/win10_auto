@@ -13,25 +13,27 @@ from RamPack import RamPack
 """
 class SmhpChunkMetadata(RamPack):
     def __init__(self, loglevel=logging.INFO):
-        self.logger = logging.getLogger("ST_CHUNK_METADATA")
+        self.logger = logging.getLogger("SMHP_CHUNK_METADATA")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
         return
 
-    def _dump():
+    def _dump32(self):
         return
 
-    def chunk_ptr_array(self):
+    def _dump64(self):
+
+    def shcm32_chunkptrarray(self):
         return
 
-    def bit_value(self):
+    def shcm32_bitvalue(self):
         return
 
-    def page_records_per_chunk_mask(self):
+    def shcm32_pagerecordsperchunkmask(self):
         return
 
-    def page_record_size(self):
+    def shcm32_pagerecordsize(self):
         return
 
-    def chunk_page_header_size(self):
+    def shcm32_chunkpageheadersize(self):
         return
