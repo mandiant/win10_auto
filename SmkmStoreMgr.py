@@ -25,10 +25,7 @@ class SmkmStoreMgr(RamPack):
     def sksm_globaltree(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?SmFeCheckPresent",
                                                       "?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY")
-        if self.Info.is_64bit():
-            reg_cx = 'rcx'
-        else:
-            reg_cx = 'ecx'
+        reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'
 
         # @start ecx is SmkmStoreMgr and instantiated to 0.
         # @end ecx is the pushlock argument, diff to get struct offset

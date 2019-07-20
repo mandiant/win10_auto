@@ -22,12 +22,8 @@ class Smkm(RamPack):
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
         lp_addr_smkmstoremgr = self.fe.loadBytes(struct.pack("<I", 0x1000))
         num_store = 0x0
-        if self.Info.is_64bit():
-            reg_cx = 'rcx'
-            reg_dx = 'rdx'
-        else:
-            reg_cx = 'ecx'
-            reg_dx = 'edx'
+        reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'
+        reg_dx = 'rdx' if self.Info.is_64bit() else 'edx'
         regState = {reg_cx:lp_addr_smkmstoremgr, reg_dx:num_store}
         self.fe.emulateRange(fn_addr, registers=regState)
         return self.fe.getRegVal(reg_cx) - lp_addr_smkmstoremgr
