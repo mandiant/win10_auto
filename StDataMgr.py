@@ -73,8 +73,8 @@ class StDataMgr(RamPack):
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmRegionRemove", "?StDmRegionEvict")
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
-        third_arg = struct.pack("<I", self.fe.getArgv()[2])
-        return pat.find(third_arg - 1)
+        third_arg = self.fe.getArgv()[2]
+        return pat.find(struct.pack("<I", third_arg - 1))
 
     @RamPack.Info.arch32
     def stdm32_regionlsb(self):

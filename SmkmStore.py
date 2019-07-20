@@ -55,11 +55,11 @@ class SmkmStore(RamPack):
     def sks32_storeownerprocess(self):
         (startAddr, endAddr) = self.locate_call_in_fn("?SmStDirectRead@?$SMKM_STORE", "KiStackAttachProcess")
         pat = self.patgen(8192)
-        lp_smkmstore = self.fe.loadBytes(pat)
+        addr_smkmstore = self.fe.loadBytes(pat)
 
         def pHook(self, userData, funcStart):
             self.logger.debug("pre emulation hook loading ECX")
-            userData["EmuHelper"].uc.reg_write(userData["EmuHelper"].regs["cx"], lp_smkmstore)
+            userData["EmuHelper"].uc.reg_write(userData["EmuHelper"].regs["cx"], addr_smkmstore)
 
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
         reg_ecx = self.fe.getRegVal("ecx")

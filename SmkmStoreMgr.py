@@ -28,6 +28,10 @@ class SmkmStoreMgr(RamPack):
         # @start ecx is SmkmStoreMgr and instantiated to 0.
         # @end ecx is the pushlock argument, diff to get struct offset
         addr_smkmstoremgr = 0x1000
-        regState = {'ecx': addr_smkmstoremgr}
-        self.fe.emulateRange(startAddr, registers=regState, endAddr=endAddr)
+
+        def pHook(self, userData, funcStart):
+            self.logger.debug("pre emulation hook loading ECX")
+            userData["EmuHelper"].uc.reg_write(userData["EmuHelper"].regs["cx"], addr_smkmstoremgr)
+
+        self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
         return self.fe.getRegVal('ecx') - addr_smkmstoremgr

@@ -9,12 +9,12 @@ from StStore import StStore
 from StDataMgr import StDataMgr
 
 def main():
-    #Magic()._dump32()
-    #SmkmStoreMgr()._dump32()
-    #Smkm()._dump32()
-    #SmkmStoreMetadata()._dump32()
+    Magic()._dump32()
+    SmkmStoreMgr()._dump32()
+    Smkm()._dump32()
+    SmkmStoreMetadata()._dump32()
     SmkmStore()._dump32()
-    #StStore()._dump32()
+    StStore()._dump32()
     StDataMgr()._dump32()
     return
 
