@@ -1,5 +1,10 @@
 # Win10Deflate Automated Structure Extraction
-`Win10Deflate` currently consists of the FLARE team's Volatility & Rekall plugins designed to support the extraction of compressed pages located in the RAM-backed virtual store. The structures required to decompress these pages are undocumented and ever-changing. The `Win10Deflate Auto` project locates these structures and extracts the corresponding magics & field-offsets of interest for use in FLARE's Volatility & Rekall plugins.
+`Win10Deflate` currently consists of the FLARE team's Volatility & Rekall plugins designed to support the extraction of compressed pages located in the RAM-backed virtual store. The structures required to decompress these pages are undocumented and ever-changing. The `Win10Deflate Auto` project locates these structures and extracts the corresponding magics & field-offsets of interest for use in FLARE's Volatility & Rekall plugins. The project leverages Tom Bennett's `FLARE-EMU` utility, which provides a series of helper functions to lower the barrier of entry to using the `Unicorn Engine` for emulation.
+
+## Setup
+1. Clone repository
+2. If `flare_emu` is installed on your machine, skip to `Usage`
+3. Use `git submodule init` to clone the `FLARE-EMU` repository locally
 
 ## Usage
 The `Win10Deflate Auto` script is designed to work in an `IDA Pro 7.x` environment in the context of a Windows 10 `ntoskrnl.exe`. Use `Alt+F7` or `File > Script File` to load `win10deflate_auto.py`.
