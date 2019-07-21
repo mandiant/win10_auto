@@ -53,7 +53,8 @@ class Magic(RamPack):
 
         for insn_addr, insn, op0, op1 in self.iter_fn(addr):
             if insn == "lea":
-                return idc.get_operand_value(insn_addr, 1) - idaapi.get_imagebase()
+                if idc.get_operand_type(insn_addr, 1) == idc.o_mem:
+                    return idc.get_operand_value(insn_addr, 1) - idaapi.get_imagebase()
 
         self.logger.error("MmPagingFile could not be resolved.")
         return None
