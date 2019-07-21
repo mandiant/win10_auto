@@ -49,7 +49,7 @@ class StDataMgr(Tools):
     @Tools.Info.arch64
     def stdm_chunkmetadata(self):
         """
-        The SMHP_CHUNK_METADATA contains information used to locate the compressed page’s corresponding
+        The SMHP_CHUNK_METADATA contains information used to locate the compressed page's corresponding
         ST_PAGE_RECORD, using information derived from the chunk key. See SMHP_CHUNK_METADATA for
         additional information. This function relies on the first argument to SmhHpChunkAlloc remaining
         constant.
@@ -137,7 +137,7 @@ class StDataMgr(Tools):
         """
         This field is a COMPRESSION_FORMAT_* enum value representing the compression format used for all
         pages in the respective store. It has been observed to consistently be COMPRESSION_FORMAT_XPRESS (0x3),
-        Microsoft’s XPRESS compression algorithm. It is a known argument to RtlDecompressBufferEx, so the
+        Microsoft's XPRESS compression algorithm. It is a known argument to RtlDecompressBufferEx, so the
         only difference between x86 & x64 is it's location. The path to the function remains the same.
         """
         pat = self.patgen(2048, size=2)  # Reduced pattern len & size to detect WORD

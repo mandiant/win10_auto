@@ -42,7 +42,7 @@ class SmkmStoreMgr(Tools):
     def sksm_globaltree(self):
         """
         This B+TREE is nested within the SMKM_STORE_MGR and contains leaf nodes of type
-        SMKM_FRONTEND_ENTRY. The SMKM_FRONTEND_ENTRY structure contains the SM_PAGE_KEY’s
+        SMKM_FRONTEND_ENTRY. The SMKM_FRONTEND_ENTRY structure contains the SM_PAGE_KEY's
         store index and creation flags. This function traverses SmFeCheckPresent up until
         BTreeSearchKey. It relies on the BTreeSearchKey function being stable in that the
         B+TREE is the first argument.

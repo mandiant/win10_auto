@@ -30,7 +30,7 @@ class StStore(Tools):
     def ss_stdatamgr(self):
         """
         This nested structure contains information used to correlate an SM_PAGE_KEY with a chunk key,
-        from which a compressed page’s location can be derived from within a region of
+        from which a compressed page's location can be derived from within a region of
         MemCompression.exe. See ST_DATA_MGR for additional information. This function relies on the
         second argument for StDmStart remaining constant.
         """
