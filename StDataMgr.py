@@ -21,6 +21,9 @@ class StDataMgr(RamPack):
         return
 
     def _dump(self):
+        """
+         Architecture agnostic function used to dump all located fields.
+         """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
         self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_localtree'](self)))
         self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_chunkmetadata'](self)))
@@ -30,18 +33,27 @@ class StDataMgr(RamPack):
         self.logger.info("ST_DATA_MGR.CompressionFormat: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_compressionformat'](self)))
         return
 
-    def _dump64(self):
-        return
-
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def stdm_localtree(self):
-        # appears to always be first entry
+        """
+        This B+TREE is nested within the ST_DATA_MGR and contains leaf nodes of type ST_PAGE_ENTRY.
+        The ST_PAGE_ENTRY structure contains two fields- the SM_PAGE_KEY and a 32-bit chunk key. The
+        chunk key is encoded with region information used to ultimately locate an ST_PAGE_RECORD
+        structure (see ST_PAGE_RECORD), from which a compressed page can be found. This structure
+        has historically been at offset 0. Function can be updated if this changes in the future.
+        """
         return 0
 
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def stdm_chunkmetadata(self):
+        """
+        The SMHP_CHUNK_METADATA contains information used to locate the compressed page’s corresponding
+        ST_PAGE_RECORD, using information derived from the chunk key. See SMHP_CHUNK_METADATA for
+        additional information. This function relies on the first argument to SmhHpChunkAlloc remaining
+        constant.
+        """
         (startAddr, endAddr) = self.locate_call_in_fn("?StDmpSinglePageAdd", "SmHpChunkAlloc")
         self.fe.iterate([endAddr], self.tHook)
         reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'
@@ -50,6 +62,9 @@ class StDataMgr(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def stdm_smkmstore(self):
+        """
+        This function relies on the first argument to SmStReleaseVirtualRegion remaining constant.
+        """
         (startAddr, endAddr) = self.locate_call_in_fn("?StReleaseRegion", "?SmStReleaseVirtualRegion")
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
@@ -66,6 +81,12 @@ class StDataMgr(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def stdm_regionsizemask(self):
+        """
+        The region key located in the ST_PAGE_RECORD structure is encoded with an index in to
+        SMKM_STORE.pCompressedRegionPointerArray, as well as an offset in to the pointer identified.
+        This function relies on the arguments to StDmRegionEvict remaining constant. The
+        x64 and x86 implementation are slightly different due to differing calling conventions.
+        """
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
 
@@ -86,6 +107,12 @@ class StDataMgr(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def stdm_regionlsb(self):
+        """
+        This function relies on data being manipulated prior to arriving at StRegionReadDereference.
+        This works well due to the function being the first call made within StDeviceWorkItemCleanup.
+        By prepopulating the ST_DATA_MGR structure with a known pattern, we can track it when the
+        SHR operation occurs and derive the offset it originated from.
+        """
         pat = self.patgen(8192)
         lp_stdatamgr = self.fe.loadBytes(pat)
         iHookData = {'pattern': None}
@@ -107,6 +134,12 @@ class StDataMgr(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def stdm_compressionformat(self):
+        """
+        This field is a COMPRESSION_FORMAT_* enum value representing the compression format used for all
+        pages in the respective store. It has been observed to consistently be COMPRESSION_FORMAT_XPRESS (0x3),
+        Microsoft’s XPRESS compression algorithm. It is a known argument to RtlDecompressBufferEx, so the
+        only difference between x86 & x64 is it's location. The path to the function remains the same.
+        """
         pat = self.patgen(2048, size=2)  # Reduced pattern len & size to detect WORD
         lp_stdatamgr = self.fe.loadBytes(pat)
 

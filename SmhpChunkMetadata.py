@@ -22,6 +22,9 @@ class SmhpChunkMetadata(RamPack):
         return
 
     def _dump(self):
+        """
+         Architecture agnostic function used to dump all located fields.
+         """
         return
 
     def shcm32_chunkptrarray(self):

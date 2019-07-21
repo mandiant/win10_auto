@@ -16,30 +16,51 @@ from flare_emu import flare_emu
 
 class RamPack():
     class Info():
+        """
+        The Info class contains architecture related information. It was originally
+        designed as a separate class to support decorators which could be applied
+        to class functions, signifying their architecture and usage. For example,
+        a @volatility or @windriver decorator could be created for fields of interest
+        to those specific products (as they differ).
+        """
         arch_fns = {'x86': {}, 'x64': {}}
 
         @classmethod
         def arch32(self, fn):
+            """
+            Decorator signifying that a class function is meant for 32-bit binary analysis.
+            """
             self.arch_fns['x86'][fn.__name__] = fn
             return fn
 
         @classmethod
         def arch64(self, fn):
+            """
+            Decorator signifying that a class function is meant for 64-bit binary analysis.
+            """
             self.arch_fns['x64'][fn.__name__] = fn
             return fn
 
         @staticmethod
         def is_64bit():
+            """
+            Determine IDB binary architecture. is_32bit() always returns True, whereas is_64bit()
+            returns False on 32-bit binaries.
+            """
             info = idaapi.get_inf_structure()
             return info.is_64bit()
 
     def __init__(self, loglevel=logging.INFO):
-        self.logger = logging.getLogger("RamPack")  # TODO overwritten by child logs
+        self.logger = logging.getLogger("RamPack")
         self.logger.setLevel(loglevel)
         self.info = self.Info()
         return
 
     def find_ida_name(self, fn_name):
+        """
+        This functions serves as a soft search for function names. It exists to allow some flexibility
+        when searching for mangled function names.
+        """
         self.logger.debug("Searching for {0}...".format(fn_name))
         for name_addr in idautils.Names():
             if fn_name in name_addr[1]:
@@ -49,15 +70,27 @@ class RamPack():
         return None, None
 
     def get_flare_emu(self, loglevel=logging.INFO):
+        """
+        Retrieve the current EmuHelper instance.
+        """
         fe = flare_emu.EmuHelper(loglevel=loglevel)
         return fe
 
     def iter_fn(self, startAddr):
+        """
+        Generator function designed to walk all instructions within a function, parse and yield them.
+        """
         endAddr = idc.GetFunctionAttr(startAddr, idc.FUNCATTR_END)
         for head in idautils.Heads(startAddr, endAddr):
             yield head, idc.GetDisasm(head).split()[0], idc.GetOpnd(head, 0), idc.GetOpnd(head, 1)
 
     def locate_call_in_fn(self, fns_start, fns_call):
+        """
+        Designed to support FLARE-EMU's iternate function, it is primarily used to locate a stopping
+        point within a function at which to terminate emulation. This is typically used to analyze
+        arguments to the target function. The function supports list input as a way to maintain
+        some flexibility between 32-bit and 64-bit binaries in which function names may change.
+        """
         if type(fns_start) is not list:
             fns_start = [fns_start]
         if type(fns_call) is not list:
@@ -83,6 +116,12 @@ class RamPack():
 
     @staticmethod
     def patgen(buf_len, size=4):
+        """
+        The pattern generator is used to populate structures which are passed into functions
+        as arguments. By monitoring outputs at certain points in the function, the sub-pattern can
+        be searched for within the original pattern, helping us derive the offset from which it
+        originated.
+        """
         pat = ""
 
         symbols = "`~!@#$%^&*()-=_+[]\{}|;':,./<>?"
@@ -112,15 +151,20 @@ class RamPack():
                     if buf_len < 0:
                         return pat[:buf_len]
 
-    """
-    Use with instructionHook callback to get a disassembly + reg dump
-    """
     def eHookDbg(self, uc, address, size, user_data):
+        """
+        The function eHookDbg is a callback function used by iterate and emulateRange. The
+        callback disassembles the instruction & prints registers. Designed for use with the
+        instructionHook argument, it functions as a lightweight trace.
+        """
         fe = user_data['EmuHelper']
         dis = idc.GetDisasm(address)
         fe.logger.info("\n".join([dis, fe.getEmuState()]))
         return
 
     def tHook(self, fe, address, argv, userData):
+        """
+        Used with FLARE-EMU's iterate to notify developer that iterate successfully hit the target.
+        """
         RamPack().logger.debug("Hit target @ {0}".format(hex(address)))
         return

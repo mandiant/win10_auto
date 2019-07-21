@@ -18,6 +18,9 @@ class SmkmStoreMetadata(RamPack):
         return
 
     def _dump(self):
+        """
+         Architecture agnostic function used to dump all located fields.
+         """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
         self.logger.info("SMKM_STORE_METADATA.Size: 0x{0:x}".format(self.Info.arch_fns[arch]['ssm_sizeof'](self)))
         self.logger.info("SMKM_STORE_METADATA.pSmkmStore: 0x{0:x}".format(self.Info.arch_fns[arch]['ssm_smkmstore'](self)))
@@ -26,6 +29,13 @@ class SmkmStoreMetadata(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def ssm_sizeof(self):
+        """
+        The size of the SMKM_STORE_METADATA structure is important due to its' presence as an array
+        of size 32. Traversing the array via index requires you to know the size. The SmKmSToreRefFromStoreIndex
+        function does this traversal and is the ideal candidate. The emulateRange function is used here
+        because we are traversing the entire function, not stopping at a certain point. We preset
+        the Store to 0 and check the value in the *AX register upon completion.
+        """
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
 
         addr_smkmstoremgr = 0x1000
@@ -43,6 +53,10 @@ class SmkmStoreMetadata(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def ssm_smkmstore(self):
+        """
+        This field is a pointer to an SMKM_STORE structure. See SMKM_STORE for additional information.
+        This function relies on the first argument to SmStWorkItemQueue remaining constant.
+        """
         (startAddr, endAddr) = self.locate_call_in_fn("SmIoCtxQueueWork", ["SmWorkItemQueue", "SmStWorkItemQueue"])
         self.fe.iterate([endAddr], self.tHook)
         reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'

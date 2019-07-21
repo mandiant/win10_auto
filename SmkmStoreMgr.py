@@ -20,6 +20,9 @@ class SmkmStoreMgr(RamPack):
         return
 
     def _dump(self):
+        """
+        Architecture agnostic function used to dump all located fields.
+        """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
         self.logger.info("SMKM_STORE_MGR.sSmKm: {0:#x}".format(self.Info.arch_fns[arch]['sksm_smkm'](self)))
         self.logger.info("SMKM_STORE_MGR.sGlobalTree: {0:#x}".format(self.Info.arch_fns[arch]['sksm_globaltree'](self)))
@@ -28,11 +31,22 @@ class SmkmStoreMgr(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def sksm_smkm(self):
+        """
+        This structure is nested within SMKM_STORE_MGR at offset 0. See SMKM for additional
+        information. Returning offset zero until an update is needed.
+        """
         return 0  # constant across win10
 
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def sksm_globaltree(self):
+        """
+        This B+TREE is nested within the SMKM_STORE_MGR and contains leaf nodes of type
+        SMKM_FRONTEND_ENTRY. The SMKM_FRONTEND_ENTRY structure contains the SM_PAGE_KEY’s
+        store index and creation flags. This function traverses SmFeCheckPresent up until
+        BTreeSearchKey. It relies on the BTreeSearchKey function being stable in that the
+        B+TREE is the first argument.
+        """
         (startAddr, endAddr) = self.locate_call_in_fn("?SmFeCheckPresent",
                                                       "?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY")
         reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'

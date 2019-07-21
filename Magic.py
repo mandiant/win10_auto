@@ -24,6 +24,9 @@ class Magic(RamPack):
         return
 
     def _dump(self):
+        """
+         Architecture agnostic function used to dump all located fields.
+         """
         if self.Info.is_64bit():
             self.logger.info("MAGIC.SmGlobals: 0x{0:x}".format(self.Info.arch_fns['x64']['m_smglobals'](self)))
             self.logger.info("MAGIC.MmPagingFile: 0x{0:x}".format(self.Info.arch_fns['x64']['m64_mmpagingfile'](self)))
@@ -38,6 +41,12 @@ class Magic(RamPack):
     @RamPack.Info.arch32
     @RamPack.Info.arch64
     def m_smglobals(self):
+        """
+         The SM_GLOBALS structure contains information about all stores being used by the system.
+         It can be located via the nt!SmGlobals symbol. Locating this structure is the fastest way
+         to begin the page retrieval process. This function searches for the symbol in IDA's namespace.
+         It is available in the ntoskrnl's PDB.
+        """
         for va, name in idautils.Names():
             if "?SmGlobals" in name:
                 return va - idaapi.get_imagebase()
@@ -46,6 +55,14 @@ class Magic(RamPack):
 
     @RamPack.Info.arch32
     def m32_mmpagingfile(self):
+        """
+        The MmPagingFile pointer can be defined as PVOID *MMPAGING_FILE[16]. Support for locating this
+        pointer is not mandatory, but essential to verify if an MMPAGING_FILE structure corresponds
+        to a virtual store. Although this pointer was previously exported as nt!MmPagingFile in Windows
+        7, the pointer has not been exported by any Windows 10 kernel to date. This function traverses
+        MiVaIsPageFileHash and stops at the first instance of an memory dereference by index. The
+        signature appears to be fragile but has worked from 1607-1809.
+        """
         (addr, name) = self.find_ida_name("MiVaIsPageFileHash")
 
         for insn_addr, insn, op0, op1 in self.iter_fn(addr):
@@ -57,6 +74,14 @@ class Magic(RamPack):
 
     @RamPack.Info.arch64
     def m64_mmpagingfile(self):
+        """
+       The MmPagingFile pointer can be defined as PVOID *MMPAGING_FILE[16]. Support for locating this
+        pointer is not mandatory, but essential to verify if an MMPAGING_FILE structure corresponds
+        to a virtual store. Although this pointer was previously exported as nt!MmPagingFile in Windows
+        7, the pointer has not been exported by any Windows 10 kernel to date. This function traverses
+        MmStorecheckPagefiles. The same signature as x86 could not be used due to compiler optimzations
+        using the LEA instruction to get the address of the global variable.
+        """
         (addr, name) = self.find_ida_name("MmStoreCheckPagefiles")
 
         for insn_addr, insn, op0, op1 in self.iter_fn(addr):
