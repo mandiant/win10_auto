@@ -9,10 +9,10 @@ compressed page.
 import logging
 import struct
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class SmkmStore(RamPack):
+class SmkmStore(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE")
         self.logger.setLevel(loglevel)
@@ -32,8 +32,8 @@ class SmkmStore(RamPack):
     def _dump64(self):
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def sks_ststore(self):
         """
         This nested structure contains another nested structure (ST_DATA_MGR), typically at a
@@ -43,8 +43,8 @@ class SmkmStore(RamPack):
         # Assumption is that the ST_STORE struct is nested @ offset 0
         return 0
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def sks_compressedregionptrarray(self):
         """
         This field is a pointer to an array of pointers in the MemCompression.exe process. An index
@@ -71,8 +71,8 @@ class SmkmStore(RamPack):
         self.fe.emulateRange(fn_addr, registers=regState, memAccessHook=mHook)
         return mHookData['offset'] - mHookData['structAddr']
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def sks_storeownerprocess(self):
         """
         This field contains a pointer to the process being used as a container for compressed memory. As

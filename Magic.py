@@ -12,10 +12,10 @@ import idc
 import idautils
 import idaapi
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class Magic(RamPack):
+class Magic(Tools):
     cs = None
 
     def __init__(self, loglevel=logging.INFO):
@@ -38,8 +38,8 @@ class Magic(RamPack):
     def _dump64(self):
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def m_smglobals(self):
         """
          The SM_GLOBALS structure contains information about all stores being used by the system.
@@ -53,7 +53,7 @@ class Magic(RamPack):
         self.logger.error("SmGlobals could not be resolved.")
         return None
 
-    @RamPack.Info.arch32
+    @Tools.Info.arch32
     def m32_mmpagingfile(self):
         """
         The MmPagingFile pointer can be defined as PVOID *MMPAGING_FILE[16]. Support for locating this
@@ -72,7 +72,7 @@ class Magic(RamPack):
         self.logger.error("MmPagingFile could not be resolved.")
         return None
 
-    @RamPack.Info.arch64
+    @Tools.Info.arch64
     def m64_mmpagingfile(self):
         """
        The MmPagingFile pointer can be defined as PVOID *MMPAGING_FILE[16]. Support for locating this

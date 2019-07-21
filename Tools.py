@@ -1,7 +1,7 @@
 """
 Author: Omar Sardar <omar.sardar@fireeye.com>
-Name: RamPack.py
-Description: The RamPack class contains helper functions and is designed to be
+Name: Tools.py
+Description: The Tools class contains helper functions and is designed to be
 inherited by classes which perform the analysis of the Windows 10 kernel.
 """
 import logging
@@ -14,7 +14,7 @@ import idaapi
 from flare_emu import flare_emu
 
 
-class RamPack():
+class Tools():
     class Info():
         """
         The Info class contains architecture related information. It was originally
@@ -51,7 +51,7 @@ class RamPack():
             return info.is_64bit()
 
     def __init__(self, loglevel=logging.INFO):
-        self.logger = logging.getLogger("RamPack")
+        self.logger = logging.getLogger("TOOLS")
         self.logger.setLevel(loglevel)
         self.info = self.Info()
         return
@@ -166,5 +166,5 @@ class RamPack():
         """
         Used with FLARE-EMU's iterate to notify developer that iterate successfully hit the target.
         """
-        RamPack().logger.debug("Hit target @ {0}".format(hex(address)))
+        Tools().logger.debug("Hit target @ {0}".format(hex(address)))
         return

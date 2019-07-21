@@ -8,10 +8,10 @@ structures to locate the compressed page.
 import logging
 import struct
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class Smkm(RamPack):
+class Smkm(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM")
         self.logger.setLevel(loglevel)
@@ -26,8 +26,8 @@ class Smkm(RamPack):
         self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns[arch]['sk_storemetadataarray'](self)))
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def sk_storemetadataarray(self):
         """
         This is an array of 32 pointers, each of which points to an array of 32 SMKM_STORE_METADATA

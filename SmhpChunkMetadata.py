@@ -11,10 +11,10 @@ of the algorithm. This is not a guarantee of future behavior.
 """
 import logging
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class SmhpChunkMetadata(RamPack):
+class SmhpChunkMetadata(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMHP_CHUNK_METADATA")
         self.logger.setLevel(loglevel)

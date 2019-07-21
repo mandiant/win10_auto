@@ -7,10 +7,10 @@ The nested structure ST_DATA_MGR is the only field of interest in page retrieval
 """
 import logging
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class StStore(RamPack):
+class StStore(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)
@@ -25,8 +25,8 @@ class StStore(RamPack):
         self.logger.info("ST_STORE.StDataMgr: 0x{0:x}".format(self.Info.arch_fns[arch]['ss_stdatamgr'](self)))
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def ss_stdatamgr(self):
         """
         This nested structure contains information used to correlate an SM_PAGE_KEY with a chunk key,

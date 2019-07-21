@@ -11,9 +11,9 @@ import struct
 
 import idc
 
-from RamPack import RamPack
+from Tools import Tools
 
-class StDataMgr(RamPack):
+class StDataMgr(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)
@@ -33,8 +33,8 @@ class StDataMgr(RamPack):
         self.logger.info("ST_DATA_MGR.CompressionFormat: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_compressionformat'](self)))
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def stdm_localtree(self):
         """
         This B+TREE is nested within the ST_DATA_MGR and contains leaf nodes of type ST_PAGE_ENTRY.
@@ -45,8 +45,8 @@ class StDataMgr(RamPack):
         """
         return 0
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def stdm_chunkmetadata(self):
         """
         The SMHP_CHUNK_METADATA contains information used to locate the compressed page’s corresponding
@@ -59,8 +59,8 @@ class StDataMgr(RamPack):
         reg_cx = 'rcx' if self.Info.is_64bit() else 'ecx'
         return self.fe.getRegVal(reg_cx)
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def stdm_smkmstore(self):
         """
         This function relies on the first argument to SmStReleaseVirtualRegion remaining constant.
@@ -78,8 +78,8 @@ class StDataMgr(RamPack):
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook)
         return pat.find(struct.pack(struct_fmt, self.fe.getRegVal(reg_cx)))
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def stdm_regionsizemask(self):
         """
         The region key located in the ST_PAGE_RECORD structure is encoded with an index in to
@@ -104,8 +104,8 @@ class StDataMgr(RamPack):
             third_arg = self.fe.getArgv()[2]
         return pat.find(struct.pack("<I", third_arg - 1))  # Must be "<I" due to retrieval of a DWORD
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def stdm_regionlsb(self):
         """
         This function relies on data being manipulated prior to arriving at StRegionReadDereference.
@@ -131,8 +131,8 @@ class StDataMgr(RamPack):
         self.fe.iterate([endAddr], self.tHook, preEmuCallback=pHook, instructionHook=iHook)
         return pat.find(iHookData["pattern"])
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def stdm_compressionformat(self):
         """
         This field is a COMPRESSION_FORMAT_* enum value representing the compression format used for all

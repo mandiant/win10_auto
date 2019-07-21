@@ -9,10 +9,10 @@ in the path to the compressed page.
 """
 import logging
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class SmkmStoreMgr(RamPack):
+class SmkmStoreMgr(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE_MGR")
         self.logger.setLevel(loglevel)
@@ -28,8 +28,8 @@ class SmkmStoreMgr(RamPack):
         self.logger.info("SMKM_STORE_MGR.sGlobalTree: {0:#x}".format(self.Info.arch_fns[arch]['sksm_globaltree'](self)))
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def sksm_smkm(self):
         """
         This structure is nested within SMKM_STORE_MGR at offset 0. See SMKM for additional
@@ -37,8 +37,8 @@ class SmkmStoreMgr(RamPack):
         """
         return 0  # constant across win10
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def sksm_globaltree(self):
         """
         This B+TREE is nested within the SMKM_STORE_MGR and contains leaf nodes of type

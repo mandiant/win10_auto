@@ -7,10 +7,10 @@ structure. Each SMKM_STORE_METADATA structure correlates to a single store, of t
 """
 import logging
 
-from RamPack import RamPack
+from Tools import Tools
 
 
-class SmkmStoreMetadata(RamPack):
+class SmkmStoreMetadata(Tools):
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE_METADATA")
         self.logger.setLevel(loglevel)
@@ -26,8 +26,8 @@ class SmkmStoreMetadata(RamPack):
         self.logger.info("SMKM_STORE_METADATA.pSmkmStore: 0x{0:x}".format(self.Info.arch_fns[arch]['ssm_smkmstore'](self)))
         return
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def ssm_sizeof(self):
         """
         The size of the SMKM_STORE_METADATA structure is important due to its' presence as an array
@@ -50,8 +50,8 @@ class SmkmStoreMetadata(RamPack):
         self.fe.emulateRange(fn_addr, registers=regState)
         return self.fe.getRegVal(reg_ax) + 1
 
-    @RamPack.Info.arch32
-    @RamPack.Info.arch64
+    @Tools.Info.arch32
+    @Tools.Info.arch64
     def ssm_smkmstore(self):
         """
         This field is a pointer to an SMKM_STORE structure. See SMKM_STORE for additional information.
