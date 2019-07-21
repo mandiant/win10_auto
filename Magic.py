@@ -1,3 +1,11 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: Magic.py
+Description: There are two magic offsets on which the extraction of compressed memory
+relies on. The pointer to the SM_GLOBALS structure and the MmPagingFile pointer (no
+longer exported) containing an array of pointers to nt!_MMPAGING_FILE structures. This
+file locates them & extracts them.
+"""
 import logging
 
 import idc

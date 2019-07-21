@@ -1,4 +1,14 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: SmkmStoreMgr.py
+Description: The SmkmStoreMgr class corresponds to the Windows 10 SMKM_STORE_MGR
+structure. The SMKM_STORE_MGR structure contains information about all the stores
+being used by the system. The structure contains a B_TREE of all SM_PAGE_KEYs
+being used, as well as a nested structure (SMKM) which is the last global structure
+in the path to the compressed page.
+"""
 import logging
+
 from RamPack import RamPack
 
 

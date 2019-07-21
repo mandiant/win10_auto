@@ -1,3 +1,10 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: SmkmStoreMetadata.py
+Description: The SmkmStoreMetadata class corresponds to the Windows 10 SMKM_STORE_METADATA
+structure. Each SMKM_STORE_METADATA structure correlates to a single store, of the possible
+1024 stores (1607+).
+"""
 import logging
 
 from RamPack import RamPack

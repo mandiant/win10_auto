@@ -1,3 +1,11 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: SmkmStore.py
+Description: The SmkmStore class corresponds to the Windows 10 SMKM_STORE structure.
+Each SMKM_STORE structure represents a single store. The information in this
+structure, and nested structures, is used to locate the specific region containing the
+compressed page.
+"""
 import logging
 import struct
 

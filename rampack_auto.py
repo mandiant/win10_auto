@@ -1,3 +1,15 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: rampack_auto.py
+Description: The RamPack automation framework is designed to reduce the level of effort
+spent analyzing a Windows 10 kernel in search of undocumented structures corresponding to
+the Store Manager's RAM-backed Virtual Store. The resolution of these structures enables
+end-users to keep the Volatility & Rekall Win10Deflate plugins up-to-date.
+
+Usage: python rampack_auto.py
+Environment: IDA Pro
+Context: Currently opened database of a Windows 10 ntoskrnl.exe file
+"""
 import logging
 
 from Magic import Magic

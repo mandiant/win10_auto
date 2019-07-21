@@ -1,3 +1,10 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: StStore.py
+Description: The StStore class corresponds to the Windows 10 ST_STORE
+structure. The ST_STORE structure is nested within SMKM_STORE and represents a single store.
+The nested structure ST_DATA_MGR is the only field of interest in page retrieval.
+"""
 import logging
 
 from RamPack import RamPack

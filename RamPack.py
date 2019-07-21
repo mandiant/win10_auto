@@ -1,3 +1,9 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: RamPack.py
+Description: The RamPack class contains helper functions and is designed to be
+inherited by classes which perform the analysis of the Windows 10 kernel.
+"""
 import logging
 import string
 

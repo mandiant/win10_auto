@@ -1,3 +1,10 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: Smkm.py
+Description: The Smkm class corresponds to the Windows 10 SMKM structure.The
+SMKM structure is the last global structure used before relying on store-specific
+structures to locate the compressed page.
+"""
 import logging
 import struct
 

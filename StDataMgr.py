@@ -1,3 +1,11 @@
+"""
+Author: Omar Sardar <omar.sardar@fireeye.com>
+Name: StDataMgr.py
+Description: The StDataMgr class corresponds to the Windows 10 ST_DATA_MGR
+structure. The ST_DATA_MGR structure is nested within SMKM_STORE and
+contains additional information used to locate the compressed page from a
+region within MemCompression.exe.
+"""
 import logging
 import struct
 
