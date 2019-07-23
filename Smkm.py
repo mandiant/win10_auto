@@ -1,10 +1,22 @@
 """
+Copyright 2019 FireEye, Inc.
+
 Author: Omar Sardar <omar.sardar@fireeye.com>
 Name: Smkm.py
-Description: The Smkm class corresponds to the Windows 10 SMKM structure.The
-SMKM structure is the last global structure used before relying on store-specific
-structures to locate the compressed page.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
+
 import logging
 import struct
 
@@ -12,6 +24,11 @@ from Tools import Tools
 
 
 class Smkm(Tools):
+    """
+    The Smkm class corresponds to the Windows 10 SMKM structure.The SMKM
+    structure is the last global structure used before relying on store-specific
+    structures to locate the compressed page.
+    """
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM")
         self.logger.setLevel(loglevel)

@@ -1,11 +1,22 @@
 """
+Copyright 2019 FireEye, Inc.
+
 Author: Omar Sardar <omar.sardar@fireeye.com>
 Name: SmkmStore.py
-Description: The SmkmStore class corresponds to the Windows 10 SMKM_STORE structure.
-Each SMKM_STORE structure represents a single store. The information in this
-structure, and nested structures, is used to locate the specific region containing the
-compressed page.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
+
 import logging
 import struct
 
@@ -13,6 +24,12 @@ from Tools import Tools
 
 
 class SmkmStore(Tools):
+    """
+    The SmkmStore class corresponds to the Windows 10 SMKM_STORE structure.
+    Each SMKM_STORE structure represents a single store. The information in this
+    structure, and nested structures, is used to locate the specific region containing the
+    compressed page.
+    """
     def __init__(self, loglevel=logging.INFO):
         self.logger = logging.getLogger("SMKM_STORE")
         self.logger.setLevel(loglevel)
