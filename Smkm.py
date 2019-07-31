@@ -40,7 +40,7 @@ class Smkm(Tools):
         Architecture agnostic function used to dump all located fields.
         """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("SMKM.SmkmStoreMetadataArray: 0x{0:x}".format(self.Info.arch_fns[arch]['sk_storemetadataarray'](self)))
+        self.logger.info("SMKM.SmkmStoreMetadataArray: {0:#x}".format(self.Info.arch_fns[arch]['sk_storemetadataarray'](self)))
         return
 
     @Tools.Info.arch32
