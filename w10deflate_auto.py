@@ -1,6 +1,23 @@
 """
+Copyright 2019 FireEye, Inc.
+
 Author: Omar Sardar <omar.sardar@fireeye.com>
 Name: w10deflate_auto.py
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+"""
 Description: The W10Deflate Auto automation framework is designed to reduce the level of effort
 spent analyzing a Windows 10 kernel in search of undocumented structures corresponding to
 the Store Manager's RAM-backed Virtual Store. The resolution of these structures enables
@@ -28,6 +45,7 @@ def main(loglevel=logging.INFO):
     SmkmStore(loglevel=loglevel)._dump()
     StStore(loglevel=loglevel)._dump()
     StDataMgr(loglevel=loglevel)._dump()
+
     return
 
 if __name__ == "__main__":
