@@ -33,6 +33,7 @@ class StDataMgr(Tools):
     region within MemCompression.exe.
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(StDataMgr, self).__init__()
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

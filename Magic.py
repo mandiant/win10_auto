@@ -36,6 +36,7 @@ class Magic(Tools):
     cs = None
 
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(Magic, self).__init__()
         self.logger = logging.getLogger("Magic")
         self.logger.setLevel(loglevel)
         return

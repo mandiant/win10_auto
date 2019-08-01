@@ -33,6 +33,7 @@ class SmhpChunkMetadata(Tools):
     of the algorithm. This is not a guarantee of future behavior.
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(SmhpChunkMetadata, self).__init__()
         self.logger = logging.getLogger("SMHP_CHUNK_METADATA")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

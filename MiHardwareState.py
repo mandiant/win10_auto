@@ -32,6 +32,7 @@ class MiHardwareState(Tools):
     MI_HARDWARE_STATE.InvalidPteMask fields.
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(MiHardwareState, self).__init__()
         self.logger = logging.getLogger("MI_HARDWARE_STATE")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

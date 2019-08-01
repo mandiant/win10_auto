@@ -31,6 +31,7 @@ class SmkmStoreMgr(Tools):
     in the path to the compressed page.
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(SmkmStoreMgr, self).__init__()
         self.logger = logging.getLogger("SMKM_STORE_MGR")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

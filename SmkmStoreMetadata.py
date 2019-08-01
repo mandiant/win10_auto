@@ -29,6 +29,7 @@ class SmkmStoreMetadata(Tools):
     the possible 1024 stores (1607+).
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(SmkmStoreMetadata, self).__init__()
         self.logger = logging.getLogger("SMKM_STORE_METADATA")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

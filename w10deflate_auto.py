@@ -39,12 +39,12 @@ from StDataMgr import StDataMgr
 
 def main(loglevel=logging.INFO):
     Magic(loglevel=loglevel)._dump()
-    SmkmStoreMgr(loglevel=loglevel)._dump()
-    Smkm(loglevel=loglevel)._dump()
-    SmkmStoreMetadata(loglevel=loglevel)._dump()
-    SmkmStore(loglevel=loglevel)._dump()
-    StStore(loglevel=loglevel)._dump()
-    StDataMgr(loglevel=loglevel)._dump()
+    #SmkmStoreMgr(loglevel=loglevel)._dump()
+    #Smkm(loglevel=loglevel)._dump()
+    #SmkmStoreMetadata(loglevel=loglevel)._dump()
+    #SmkmStore(loglevel=loglevel)._dump()
+    #StStore(loglevel=loglevel)._dump()
+    #StDataMgr(loglevel=loglevel)._dump()
 
     return
 

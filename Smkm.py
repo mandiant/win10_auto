@@ -30,6 +30,7 @@ class Smkm(Tools):
     structures to locate the compressed page.
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(Smkm, self).__init__()
         self.logger = logging.getLogger("SMKM")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

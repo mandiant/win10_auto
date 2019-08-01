@@ -29,6 +29,7 @@ class StStore(Tools):
     The nested structure ST_DATA_MGR is the only field of interest in page retrieval.
     """
     def __init__(self, loglevel=logging.INFO):
+        self.tools = super(StStore, self).__init__()
         self.logger = logging.getLogger("ST_STORE")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()

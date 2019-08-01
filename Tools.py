@@ -27,7 +27,7 @@ import idaapi
 from flare_emu import flare_emu
 
 
-class Tools():
+class Tools(object):
     """
     The Tools class contains helper functions and is designed to be
     inherited by classes which perform the analysis of the Windows 10 kernel.
