@@ -42,9 +42,9 @@ class SmkmStore(Tools):
          Architecture agnostic function used to dump all located fields.
          """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("SMKM_STORE.StStore: {0:#x}".format(self.Info.arch_fns[arch]['sks_ststore'](self)))
-        self.logger.info("SMKM_STORE.pCompressedRegionPtrArray: {0:#x}".format(self.Info.arch_fns[arch]['sks_compressedregionptrarray'](self)))
-        self.logger.info("SMKM_STORE.StoreOwnerProcess: {0:#x}".format(self.Info.arch_fns[arch]['sks_storeownerprocess'](self)))
+        self.logger.info("StStore: {0:#x}".format(self.Info.arch_fns[arch]['sks_ststore'](self)))
+        self.logger.info("pCompressedRegionPtrArray: {0:#x}".format(self.Info.arch_fns[arch]['sks_compressedregionptrarray'](self)))
+        self.logger.info("StoreOwnerProcess: {0:#x}".format(self.Info.arch_fns[arch]['sks_storeownerprocess'](self)))
         return
 
     def _dump64(self):

@@ -40,7 +40,7 @@ class StStore(Tools):
          Architecture agnostic function used to dump all located fields.
          """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("ST_STORE.StDataMgr: 0x{0:x}".format(self.Info.arch_fns[arch]['ss_stdatamgr'](self)))
+        self.logger.info("StDataMgr: {0:#x}".format(self.Info.arch_fns[arch]['ss_stdatamgr'](self)))
         return
 
     @Tools.Info.arch32

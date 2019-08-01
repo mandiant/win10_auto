@@ -46,11 +46,11 @@ class Magic(Tools):
          Architecture agnostic function used to dump all located fields.
          """
         if self.Info.is_64bit():
-            self.logger.info("MAGIC.SmGlobals: 0x{0:x}".format(self.Info.arch_fns['x64']['m_smglobals'](self)))
-            self.logger.info("MAGIC.MmPagingFile: 0x{0:x}".format(self.Info.arch_fns['x64']['m64_mmpagingfile'](self)))
+            self.logger.info("SmGlobals: {0:#x}".format(self.Info.arch_fns['x64']['m_smglobals'](self)))
+            self.logger.info("MmPagingFile: {0:#x}".format(self.Info.arch_fns['x64']['m64_mmpagingfile'](self)))
         else:
-            self.logger.info("MAGIC.SmGlobals: 0x{0:x}".format(self.Info.arch_fns['x86']['m_smglobals'](self)))
-            self.logger.info("MAGIC.MmPagingFile: 0x{0:x}".format(self.Info.arch_fns['x86']['m32_mmpagingfile'](self)))
+            self.logger.info("SmGlobals: {0:#x}".format(self.Info.arch_fns['x86']['m_smglobals'](self)))
+            self.logger.info("MmPagingFile: {0:#x}".format(self.Info.arch_fns['x86']['m32_mmpagingfile'](self)))
         return
 
     def _dump64(self):

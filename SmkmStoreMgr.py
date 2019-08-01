@@ -42,8 +42,8 @@ class SmkmStoreMgr(Tools):
         Architecture agnostic function used to dump all located fields.
         """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("SMKM_STORE_MGR.sSmKm: {0:#x}".format(self.Info.arch_fns[arch]['sksm_smkm'](self)))
-        self.logger.info("SMKM_STORE_MGR.sGlobalTree: {0:#x}".format(self.Info.arch_fns[arch]['sksm_globaltree'](self)))
+        self.logger.info("sSmKm: {0:#x}".format(self.Info.arch_fns[arch]['sksm_smkm'](self)))
+        self.logger.info("sGlobalTree: {0:#x}".format(self.Info.arch_fns[arch]['sksm_globaltree'](self)))
         return
 
     @Tools.Info.arch32

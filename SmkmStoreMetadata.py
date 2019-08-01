@@ -40,8 +40,8 @@ class SmkmStoreMetadata(Tools):
          Architecture agnostic function used to dump all located fields.
          """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("SMKM_STORE_METADATA.Size: 0x{0:x}".format(self.Info.arch_fns[arch]['ssm_sizeof'](self)))
-        self.logger.info("SMKM_STORE_METADATA.pSmkmStore: 0x{0:x}".format(self.Info.arch_fns[arch]['ssm_smkmstore'](self)))
+        self.logger.info("Size: {0:#x}".format(self.Info.arch_fns[arch]['ssm_sizeof'](self)))
+        self.logger.info("pSmkmStore: {0:#x}".format(self.Info.arch_fns[arch]['ssm_smkmstore'](self)))
         return
 
     @Tools.Info.arch32

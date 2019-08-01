@@ -43,7 +43,7 @@ class MiHardwareState(Tools):
         Architecture agnostic function used to dump all located fields.
         """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("MI_HARDWARE_STATE.InvalidPteMask: {0:#x}".format(self.Info.arch_fns[arch]['mhs_invalidptemask'](self)))
+        self.logger.info("InvalidPteMask: {0:#x}".format(self.Info.arch_fns[arch]['mhs_invalidptemask'](self)))
         return
 
     @Tools.Info.arch64

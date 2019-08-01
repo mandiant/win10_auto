@@ -34,7 +34,7 @@ class StDataMgr(Tools):
     """
     def __init__(self, loglevel=logging.INFO):
         self.tools = super(StDataMgr, self).__init__()
-        self.logger = logging.getLogger("ST_STORE")
+        self.logger = logging.getLogger("ST_DATA_MGR")
         self.logger.setLevel(loglevel)
         self.fe = self.get_flare_emu()
         return
@@ -44,12 +44,12 @@ class StDataMgr(Tools):
          Architecture agnostic function used to dump all located fields.
          """
         arch = 'x64' if self.Info.is_64bit() else 'x86'
-        self.logger.info("ST_DATA_MGR.sLocalTree: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_localtree'](self)))
-        self.logger.info("ST_DATA_MGR.ChunkMetadata: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_chunkmetadata'](self)))
-        self.logger.info("ST_DATA_MGR.SmkmStore: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_smkmstore'](self)))
-        self.logger.info("ST_DATA_MGR.RegionSizeMask: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_regionsizemask'](self)))
-        self.logger.info("ST_DATA_MGR.RegionLSB: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_regionlsb'](self)))
-        self.logger.info("ST_DATA_MGR.CompressionFormat: 0x{0:x}".format(self.Info.arch_fns[arch]['stdm_compressionformat'](self)))
+        self.logger.info("sLocalTree: {0:#x}".format(self.Info.arch_fns[arch]['stdm_localtree'](self)))
+        self.logger.info("ChunkMetadata: {0:#x}".format(self.Info.arch_fns[arch]['stdm_chunkmetadata'](self)))
+        self.logger.info("SmkmStore: {0:#x}".format(self.Info.arch_fns[arch]['stdm_smkmstore'](self)))
+        self.logger.info("RegionSizeMask: {0:#x}".format(self.Info.arch_fns[arch]['stdm_regionsizemask'](self)))
+        self.logger.info("RegionLSB: {0:#x}".format(self.Info.arch_fns[arch]['stdm_regionlsb'](self)))
+        self.logger.info("CompressionFormat: {0:#x}".format(self.Info.arch_fns[arch]['stdm_compressionformat'](self)))
         return
 
     @Tools.Info.arch32
