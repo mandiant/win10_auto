@@ -37,6 +37,8 @@ from SmkmStore import SmkmStore
 from StStore import StStore
 from StDataMgr import StDataMgr
 
+import idc
+
 def main(loglevel=logging.INFO):
     Magic(loglevel=loglevel)._dump()
     SmkmStoreMgr(loglevel=loglevel)._dump()
@@ -48,6 +50,10 @@ def main(loglevel=logging.INFO):
 
     return
 
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    main(loglevel=logging.INFO)
+    if idc.get_name_ea_simple("_KiSystemStartup@4") == -1:
+        logging.warning("Launch script from within an ntoskrnl IDB with PDB symbols loaded")
+    else:
+        main(loglevel=logging.INFO)
