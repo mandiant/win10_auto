@@ -52,7 +52,19 @@ class SmkmStoreMetadata(Tools):
         of size 32. Traversing the array via index requires you to know the size. The SmKmSToreRefFromStoreIndex
         function does this traversal and is the ideal candidate. The emulateRange function is used here
         because we are traversing the entire function, not stopping at a certain point. We preset
-        the Store to 0 and check the value in the *AX register upon completion.
+        the Store to 0 and check the value in the *AX register upon completion. Disassembly snippet from
+        Windows 10 1809 x86 shown below.
+
+        SmKmStoreRefFromStoreIndex      _SmKmStoreRefFromStoreIndex@8 proc near ;
+        SmKmStoreRefFromStoreIndex                      mov     eax, edx
+        SmKmStoreRefFromStoreIndex+2                    shr     eax, 5
+        SmKmStoreRefFromStoreIndex+5                    mov     ecx, [ecx+eax*4]
+        SmKmStoreRefFromStoreIndex+8                    test    ecx, ecx
+        SmKmStoreRefFromStoreIndex+A                    jz      short loc_4C7D41
+        SmKmStoreRefFromStoreIndex+C                    and     edx, 1Fh
+        SmKmStoreRefFromStoreIndex+F                    imul    eax, edx, 14h
+        SmKmStoreRefFromStoreIndex+12                   add     eax, ecx
+        SmKmStoreRefFromStoreIndex+14                   retn
         """
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
 
@@ -73,7 +85,14 @@ class SmkmStoreMetadata(Tools):
     def ssm_smkmstore(self):
         """
         This field is a pointer to an SMKM_STORE structure. See SMKM_STORE for additional information.
-        This function relies on the first argument to SmStWorkItemQueue remaining constant.
+        This function relies on the first argument to SmStWorkItemQueue remaining constant. Disassembly
+        snippet from Windows 10 1809 x86 shown below.
+
+        SmIoCtxQueueWork+93     call    _SmKmStoreRefFromStoreIndex@8
+        SmIoCtxQueueWork+98     push    0               ; KIRQL
+        SmIoCtxQueueWork+9A     mov     edx, edi
+        SmIoCtxQueueWork+9C     mov     ecx, [eax]
+        SmIoCtxQueueWork+9E     call    _SmWorkItemQueue@12
         """
         (startAddr, endAddr) = self.locate_call_in_fn("SmIoCtxQueueWork", ["SmWorkItemQueue", "SmStWorkItemQueue"])
         self.fe.iterate([endAddr], self.tHook)

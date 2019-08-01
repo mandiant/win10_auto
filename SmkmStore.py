@@ -69,7 +69,22 @@ class SmkmStore(Tools):
         into this array is indirectly derived from the SM_PAGE_KEY. This function loads the SMKM_STORE
         structure with a pre-defined pattern. The SmStMapVirtualRegion function is traversed while
         a memory hook monitors for read events. This signature is fragile in that we're relying on the
-        first memory read of the function to be the field of interest.
+        first memory read of the function to be the field of interest. Disassembly snippet from
+        Windows 10 1809 x86 shown below.
+
+        SmStMapVirtualRegion      ?SmStMapVirtualRegion@?$SMKM_STORE@USM_TRAITS...
+        SmStMapVirtualRegion                      mov     edi, edi
+        SmStMapVirtualRegion+2                    push    ebp
+        SmStMapVirtualRegion+3                    mov     ebp, esp
+        SmStMapVirtualRegion+5                    and     esp, 0FFFFFFF8h
+        SmStMapVirtualRegion+8                    sub     esp, 34h
+        SmStMapVirtualRegion+B                    push    ebx
+        SmStMapVirtualRegion+C                    push    esi
+        SmStMapVirtualRegion+D                    push    edi
+        SmStMapVirtualRegion+E                    mov     edi, ecx
+        SmStMapVirtualRegion+10                   mov     [esp+40h+var_28], edx
+        SmStMapVirtualRegion+14                   mov     [esp+40h+var_1C], edi
+        SmStMapVirtualRegion+18                   mov     eax, [edi+1184h]
         """
         (fn_addr, fn_name) = self.find_ida_name("SmStMapVirtualRegion")
         pat = self.patgen(8192)
@@ -96,7 +111,14 @@ class SmkmStore(Tools):
         This field contains a pointer to the process being used as a container for compressed memory. As
         of Windows 10 1607, this field has pointed to MemCompression.exe. The first argument to KiStackAttachProcess
         is the process to which the current kernel thread will attach to. This is the address of the store
-        owner process in the case of Win10 memory decompression.
+        owner process in the case of Win10 memory decompression. Disassembly snippet from Windows 10 1809 x86
+        shown below.
+
+        SmStDirectRead+35                   mov     ecx, [ebx+1254h] ; BugCheckParameter1
+        SmStDirectRead+3B                   lea     eax, [ebp+var_1C]
+        SmStDirectRead+3E                   push    eax             ; int
+        SmStDirectRead+3F                   xor     edx, edx
+        SmStDirectRead+41                   call    _KiStackAttachProcess@12 ; KiStackAttachProcess(x,x,x)
         """
         (startAddr, endAddr) = self.locate_call_in_fn("?SmStDirectRead@?$SMKM_STORE", "KiStackAttachProcess")
         pat = self.patgen(8192)

@@ -51,7 +51,26 @@ class Smkm(Tools):
         This is an array of 32 pointers, each of which points to an array of 32 SMKM_STORE_METADATA
         structures. The SmKmStoreRefFromStoreIndex function traverses the pointer array. This
         signature asks the function to locate Store 0. The value stored in *CX at the end of
-        function emulation corresponds to the offset of the StoreMetadataArray.
+        function emulation corresponds to the offset of the StoreMetadataArray. Disassembly snippet
+        from Windows 10 1809 x64 shown below.
+
+        SmKmStoreRefFromStoreIndex      SmKmStoreRefFromStoreIndex proc near
+        SmKmStoreRefFromStoreIndex
+        SmKmStoreRefFromStoreIndex                      mov     eax, edx
+        SmKmStoreRefFromStoreIndex+2                    shr     rax, 5
+        SmKmStoreRefFromStoreIndex+6                    mov     r8d, edx
+        SmKmStoreRefFromStoreIndex+9                    mov     rdx, [rcx+rax*8]
+        SmKmStoreRefFromStoreIndex+D                    test    rdx, rdx
+        SmKmStoreRefFromStoreIndex+10                   jnz     short loc_140018069
+        SmKmStoreRefFromStoreIndex+12                   xor     eax, eax
+        SmKmStoreRefFromStoreIndex+14                   retn
+
+        SmKmStoreRefFromStoreIndex+15   loc_140018069:
+        SmKmStoreRefFromStoreIndex+15                   and     r8d, 1Fh
+        SmKmStoreRefFromStoreIndex+19                   lea     rax, [r8+r8*4]
+        SmKmStoreRefFromStoreIndex+1D                   lea     rax, [rdx+rax*8]
+        SmKmStoreRefFromStoreIndex+21                   retn
+        SmKmStoreRefFromStoreIndex+21   SmKmStoreRefFromStoreIndex endp
         """
         (fn_addr, fn_name) = self.find_ida_name("SmKmStoreRefFromStoreIndex")
         lp_addr_smkmstoremgr = self.fe.loadBytes(struct.pack("<I", 0x1000))

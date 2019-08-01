@@ -50,7 +50,12 @@ class StStore(Tools):
         This nested structure contains information used to correlate an SM_PAGE_KEY with a chunk key,
         from which a compressed page's location can be derived from within a region of
         MemCompression.exe. See ST_DATA_MGR for additional information. This function relies on the
-        second argument for StDmStart remaining constant.
+        second argument for StDmStart remaining constant. Disassembly snippet from Windows 10 1809 x86
+        shown below.
+
+        StStart+27A     lea     edx, [esi+38h]
+        StStart+27D     mov     ecx, esi
+        StStart+27F     call    ?StDmStart@?$ST_STORE@USM_TRAITS@@@@SGJPAU1@PAU_ST_DATA_MGR@1@...
         """
         (startAddr, endAddr) = self.locate_call_in_fn("?StStart", "StDmStart")
         self.fe.iterate([endAddr], self.tHook)

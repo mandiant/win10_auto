@@ -63,7 +63,20 @@ class SmkmStoreMgr(Tools):
         SMKM_FRONTEND_ENTRY. The SMKM_FRONTEND_ENTRY structure contains the SM_PAGE_KEY's
         store index and creation flags. This function traverses SmFeCheckPresent up until
         BTreeSearchKey. It relies on the BTreeSearchKey function being stable in that the
-        B+TREE is the first argument.
+        B+TREE is the first argument. Disassembly snippet from Windows 10 1809 x64 shown below.
+
+        SmFeCheckPresent    lea     rcx, [rdi+1C0h]
+        SmFeCheckPresent    mov     eax, [r12]
+        SmFeCheckPresent    lea     r8, [rsp+148h+var_108]
+        SmFeCheckPresent    mov     r15d, 400h
+        SmFeCheckPresent    mov     [rsp+148h+var_128], eax
+        SmFeCheckPresent    mov     edx, ebx
+        SmFeCheckPresent    mov     [rsp+148h+var_E8], 1
+        SmFeCheckPresent    mov     [rsp+148h+var_EC], 8
+        SmFeCheckPresent    xor     esi, esi
+        SmFeCheckPresent    mov     r14d, r15d
+        SmFeCheckPresent    xor     ebp, ebp
+        SmFeCheckPresent    call    ?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY...
         """
         (startAddr, endAddr) = self.locate_call_in_fn("?SmFeCheckPresent",
                                                       "?BTreeSearchKey@?$B_TREE@T_SM_PAGE_KEY@@USMKM_FRONTEND_ENTRY")

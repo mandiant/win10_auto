@@ -50,6 +50,12 @@ class MiHardwareState(Tools):
     def mhs_invalidptemask(self):
         """
         The InvalidPteMask is used in the derivation of the SM_PAGE_KEY in Win10.1803.x64+.
+        Disassembly snippet from Windows 10 1809 x64 shown below.
+
+        MiSwizzleInvalidPte      MiSwizzleInvalidPte proc near           ;
+        MiSwizzleInvalidPte                                              ;
+        MiSwizzleInvalidPte                      mov     rax, cs:qword_14043A1C0
+        MiSwizzleInvalidPte+7                    test    rax, rax
         """
         (fn_addr, fn_name) = self.find_ida_name("MiSwizzleInvalidPte")
         mHookData = {'offset':None}
