@@ -35,6 +35,7 @@ INFO:ST_STORE:ST_DATA_MGR.CompressionFormat: 0x3e0
 The `Win10Deflate` automation script relies on known function arguments, callstacks, order of operation, and data manipulation within `ntoskrnl.exe`'s Store Manager functions. By leveraging emulation via `FLARE-EMU`, arguments and structures can be injected into the system, traced, and then located to calculate field offsets in structures of interest.
 
 ## Additional Reading
-1. TODO - Rekall & Volatility Announcement Blog
-1. TODO - Deep Dive
-1. TODO - Win10Deflate Automation Blog
+1. [Part 1 - Rekall & Volatility Announcement Blog](https://www.fireeye.com/blog/threat-research/2019/07/finding-evil-in-windows-ten-compressed-memory-part-one.html)
+1. Part 2 - Virtual Store Deep Dive Blog
+1. Part 3 - Automating Undocumented Structure Extraction Blog
+1. BlackHat USA 2019 Whitepaper
