@@ -4,7 +4,7 @@
 ## Setup
 1. Clone repository
 2. If `flare_emu` is installed on your machine, skip to `Usage`
-3. Use `git submodule init` to clone the `FLARE-EMU` repository locally
+3. Use `git submodule init` & `git submodule update` to clone the `FLARE-EMU` repository locally
 
 ## Usage
 The `Win10Deflate Auto` script is designed to work in an `IDA Pro 7.x` environment in the context of a Windows 10 `ntoskrnl.exe`. Use `Alt+F7` or `File > Script File` to load `win10deflate_auto.py`.
